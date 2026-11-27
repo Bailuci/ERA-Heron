@@ -2,6 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-26
  * 目的：版本标识：解析版本（新聊天才遮蔽思考块、启用指令外层标签）、写入版本、角色卡变量“ERA最低版本”的检查
+ *       2026-11-27 解析版本 3：补全后的保护规则（isStrictProtection）
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -9,7 +10,8 @@
  * @description
  * **解析版本**（`ERAMetaData.ParserVersion`）决定正文怎样解析成指令：
  * - 缺省（1.6 及更早建立的聊天）：全文匹配指令块，思考块里的指令也会执行，重算结果与旧版完全相同；
- * - 2（1.7 起新建的聊天）：先把思考标签的内容替换成等长空格；设置了 `指令外层标签` 时，只认该标签内部的指令。
+ * - 2（1.7 起新建的聊天）：先把思考标签的内容替换成等长空格；设置了 `指令外层标签` 时，只认该标签内部的指令；
+ * - 3（2.0.3 起新建的聊天）：在 2 的基础上补全保护规则，见 `isStrictProtection`。
  *
  * 新聊天是指 `ERAMetaData` 为空、ERA 从未写入过的聊天；它第一次写入元数据时记下解析版本，之后不再改变，
  * 因此同一个聊天的每次重算都按同一种方式解析。旧聊天永远不会被自动升级。
@@ -68,6 +70,11 @@ export function getParserVersion(meta: any): number {
   }
   return _.isEmpty(meta) ? PARSER_VERSION : 1;
 }
+
+/**
+ * 这个聊天是否使用补全后的保护规则（解析版本 3 起）。旧聊天里曾经生效的指令在重算时必须照旧生效，所以只对新聊天开启。
+ */
+export const isStrictProtection = (meta: any): boolean => getParserVersion(meta) >= 3;
 
 /** 只含解析版本的元数据，用于在当前聊天的解析方式下试算一段文本。 */
 export const parserMetaOf = (meta: any): Record<string, number> => ({ [PARSER_VERSION_PATH]: getParserVersion(meta) });

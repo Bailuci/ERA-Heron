@@ -7,6 +7,7 @@
  *       2026-11-27 Era.applyText 在钩子里被拒绝时不再产生未处理的 rejection；新增 Era.registerTool / hasTool、Era.registerExprFn / hasExprFn；commit / applyText 的幂等键 key；Era.extra.plan / replan（正文前规划）；Era.setMessageText
  *       2026-11-27 registerExprFn 的说明：不能注册名为 call 的函数
  *       2026-11-27 更正条目过滤器在主生成中的调用时机说明
+ *       2026-11-27 setMessageText / keepMessageKey 的楼层号越界时报错（酒馆助手会把越界的楼层号夹到首尾楼）
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -33,7 +34,7 @@ import { ERA_API_EVENTS, ERA_FEATURES, ERA_VERSION } from '../utils/constants';
 import { unescapeEraData } from '../utils/data';
 import { getEraData, removeMetaFields, settings } from '../utils/era_data';
 import { Logger } from '../utils/log';
-import { getRawMessageContent, keepEraBlocks, parseCommandText } from '../utils/message';
+import { getMessageAt, getRawMessageContent, keepEraBlocks, parseCommandText } from '../utils/message';
 import { parseCharacterMacros } from '../utils/text';
 import { readMessageKey } from '../core/key/mk';
 import { getCurrentParseOptions } from '../core/version';
@@ -154,7 +155,7 @@ async function setMessageTextNow(where: FloorRef, text: string): Promise<EraWrit
   if (!mk) {
     const id = typeof where === 'number' ? where : (where as any)?.message_id;
     if (!Number.isInteger(id)) throw new Error('需要指定楼层：消息 ID 或 MK');
-    const msg = getChatMessages(id, { include_swipes: true })?.[0];
+    const msg = getMessageAt(id);
     if (!msg) throw new Error('目标消息不存在');
     mk = readMessageKey(msg);
     if (!mk) throw new Error('这一楼还没有被 ERA 登记（没有 MK），请等同步完成后再改写');
@@ -411,15 +412,15 @@ export const Era = {
    * @param text 新的正文。
    * @param from 原来的正文，或楼层的消息 ID（可以用负数从末尾倒数）。
    * @returns 末尾补上原来的 `<era_data>`、`<era_extra>` 块的正文；原来也没有时原样返回。
+   * @throws `from` 是楼层号而这一楼不存在时抛出错误。
    * @example
    * await setChatMessages([{ message_id: 0, message: Era.keepMessageKey(newText, 0) }]);
    */
   keepMessageKey(text: string, from: string | number): string {
-    const source =
-      typeof from === 'number'
-        ? getRawMessageContent(getChatMessages(from, { include_swipes: true })?.[0])
-        : String(from ?? '');
-    return keepEraBlocks(text, source);
+    if (typeof from !== 'number') return keepEraBlocks(text, String(from ?? ''));
+    const msg = getMessageAt(from);
+    if (!msg) throw new Error('目标消息不存在');
+    return keepEraBlocks(text, getRawMessageContent(msg));
   },
 
   /**

@@ -6,6 +6,7 @@
  *       2026-11-27 主生成的条目过滤器只在真正的主生成期间运行和等待；强制纳入时关闭概率，不改写带粘性或冷却的条目；输入框有文字时不回退读取最新玩家楼的规划摘要
  *       2026-11-27 请求加上头部提示词、酒馆预设与流式请求（见 request.ts）；status().history 保留最近几次分步更新与规划的请求记录
  *       2026-11-27 主生成标记不再因斜杠命令等提前返回而卡住（还要求酒馆正处于生成中）；规划摘要只在与 GENERATION_STARTED 配对的 AFTER_COMMANDS 注入；带 ID 的停止不撤注入；切换聊天后旧聊天的结果不再写进新聊天
+ *       2026-11-27 等待中的楼层按 getMessageAt 取；重新规划时不把 <era_data> 发给规划模型
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -21,9 +22,15 @@ import { readMessageKey } from '../core/key/mk';
 import { findMessageByMk, findSwipeByMk, getStatBefore } from '../core/simulate';
 import { createTicket } from '../events/handlers/api/tickets';
 import { isQueueIdle, pushToQueue, waitForQueueIdle } from '../events/queue';
-import { ERA_API_EVENTS, ERA_EVENT_EMITTER, ExtraStatusPayload, WriteDonePayload } from '../utils/constants';
+import {
+  ERA_API_EVENTS,
+  ERA_DATA_REGEX,
+  ERA_EVENT_EMITTER,
+  ExtraStatusPayload,
+  WriteDonePayload,
+} from '../utils/constants';
 import { Logger } from '../utils/log';
-import { findLastAiMessage, getMessageContent, hasOwnCommands, isUserMessage } from '../utils/message';
+import { findLastAiMessage, getMessageAt, getMessageContent, hasOwnCommands, isUserMessage } from '../utils/message';
 import { ExtraConfig, getApiChain, isExtraEnabled, loadExtraConfig, resolveExtraConfig } from './config';
 import { prepareRequest } from './request';
 import { getExtraWorldbookNames, parseEntryTag } from './prompt';
@@ -421,7 +428,10 @@ export async function planText(text: string, history?: any[], baseStat?: any, mk
   const signal = { aborted: false };
   planning = signal;
   const epoch = chatEpoch;
-  const input = stripPlanBlock(String(text ?? ''));
+  // 重新规划时传进来的是玩家楼的原文，里面的消息密钥不该发给规划模型
+  const input = stripPlanBlock(String(text ?? ''))
+    .replace(new RegExp(ERA_DATA_REGEX.source, 'g'), '')
+    .trimEnd();
   try {
     const config = resolveExtraConfig();
     const messages = history ?? getChatMessages('0-{{lastMessageId}}', { include_swipes: true }) ?? [];
@@ -869,7 +879,8 @@ function removeOtherModelEntries(lores: Record<string, any[]>): void {
 
 const getMessage = (message_id: number): any => {
   try {
-    return getChatMessages(message_id, { include_swipes: true })?.[0];
+    // 等待中的楼层可能已被删除：不能用 getChatMessages(楼层号)，它会把越界的楼层号夹到末楼
+    return getMessageAt(message_id);
   } catch {
     return undefined;
   }

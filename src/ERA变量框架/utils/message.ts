@@ -6,6 +6,7 @@
  *       2026-11-27 正文与额外模型输出的拼接抽成 appendExtraBlock，写入与试算共用；<era_extra> 不受正文思考遮蔽的影响；额外模型输出的提取按“思考标签”设置遮蔽；新增按解析方式取出会执行的指令块（extractExecutedBlocks）；指令带上来源标记 source（<era_extra>、ApiOps），只用于报告；
  *       <era_extra> 区段只认闭合、并且开头不在闭合的思考块里的块（findExtraRanges），正文的思考遮蔽、外层标签的例外与来源标记共用；去掉 <era_extra> 块时不跨过另一个 <era_extra>
  *       2026-11-27 工具调用 <EraFCall>：解析、计数、提取与剥离；keepEraBlocks（保留 ERA 写在正文里的块）
+ *       2026-11-27 新增 getMessageAt（按楼层号取消息，越界返回 undefined）
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -168,6 +169,17 @@ export function getMessageContent(msg: any): string | null {
  * **【获取消息原文】** 不展开宏的消息内容，与 `updateMessageContent` 写入的位置一致（有 swipes 时取当前 swipe）。
  * 需要修改正文再写回时必须用它：`getMessageContent` 会展开 `{{user}}` 等宏，写回去会把宏固定成当前的名字。
  */
+/**
+ * 按楼层号取一条消息（含全部 swipe），负数从末尾倒数；楼层不存在时返回 `undefined`。
+ * 酒馆助手的 `getChatMessages(楼层号)` 会把越界的楼层号夹到首楼或末楼，
+ * 调用方传来的楼层号（可能是删楼前记下的）必须用这个函数取，否则会操作到别的楼。
+ */
+export function getMessageAt(message_id: number): any {
+  if (!Number.isInteger(message_id)) return undefined;
+  const all = getChatMessages('0-{{lastMessageId}}', { include_swipes: true }) ?? [];
+  return all.at(message_id);
+}
+
 export function getRawMessageContent(msg: any): string {
   if (!msg) return '';
   const raw = Array.isArray(msg.swipes) ? msg.swipes[Number(msg.swipe_id ?? 0)] : (msg.mes ?? msg.message);

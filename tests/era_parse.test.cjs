@@ -125,12 +125,13 @@ test('parseCommandText：遮蔽后的块序号仍按原文计数；不转义时�
 
 test('解析版本：空元数据是新聊天；有元数据没有标记是旧聊天；标记比当前新时按当前最新的方式', () => {
   const { getParserVersion, getParseOptions, splitTagList, normalizeTagName } = create_env().version();
-  assert.equal(getParserVersion({}), 2);
-  assert.equal(getParserVersion(undefined), 2);
+  assert.equal(getParserVersion({}), 3);
+  assert.equal(getParserVersion(undefined), 3);
   assert.equal(getParserVersion({ EditLogs: {} }), 1);
   assert.equal(getParserVersion({ SelectedMks: [], ParserVersion: 'x' }), 1);
   assert.equal(getParserVersion({ ParserVersion: 2 }), 2);
-  assert.equal(getParserVersion({ ParserVersion: 9 }), 2);
+  assert.equal(getParserVersion({ ParserVersion: 3 }), 3);
+  assert.equal(getParserVersion({ ParserVersion: 9 }), 3);
   assert.equal(getParseOptions({ EditLogs: {} }), undefined);
   assert.deepEqual(plain(getParseOptions({ ParserVersion: 2 })), { thinkTags: THINK });
   assert.deepEqual(plain(splitTagList(' <think>, thinking，reasoning;  ')), ['think', 'thinking', 'reasoning']);
@@ -144,7 +145,7 @@ test('新聊天：第一次写入时记下解析版本与写入版本；思考�
   const { ERA_VERSION } = env.load('utils/constants');
   env.send('assistant', `<think>${T('Insert', { 思考: 1 })}</think>${T('Insert', { a: 1 })}`);
   await env.sync();
-  assert.equal(env.meta().ParserVersion, 2);
+  assert.equal(env.meta().ParserVersion, 3);
   assert.equal(env.meta().WrittenWith, ERA_VERSION);
   assert.deepEqual(plain(env.stat()), { a: 1 });
   env.send(
@@ -172,7 +173,7 @@ test('先登记 MK（MESSAGE_SENT）再同步的新聊天同样记下解析版�
   const env = create_env();
   env.send('user', '你好');
   await env.register_only();
-  assert.equal(env.meta().ParserVersion, 2);
+  assert.equal(env.meta().ParserVersion, 3);
   env.send('assistant', `<think>${T('Insert', { 思考: 1 })}</think>${T('Insert', { a: 1 })}`);
   await env.sync();
   assert.deepEqual(plain(env.stat()), { a: 1 });

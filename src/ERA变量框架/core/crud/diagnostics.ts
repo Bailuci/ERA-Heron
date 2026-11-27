@@ -3,6 +3,7 @@
  * 日期：2026-11-25
  * 目的：新增 <VariablePatch> 指令、宽松解析、只读字段与指令问题报告；修复复审中发现的问题
  *       2026-11-27 问题带上指令的来源标记 source（额外模型输出、旁路写入），只用于报告
+ *       2026-11-27 新增 findProtectedInside（整体覆盖对象前检查其中受保护的内容）
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -38,6 +39,35 @@ export function reportIssue(
 }
 
 /** 以 `_` 开头的键是只读字段（仅在脚本设置 `下划线只读` 开启时生效）。键可以是转义过的。 */
+/**
+ * 整体覆盖或删除 `node` 会不会破坏其中受保护的内容。返回原因；没有问题时返回 `null`。
+ * - `$meta.updatable: false`：它自己和任何后代；
+ * - `$meta.necessary`：自己是 `self` / `all` 的后代，以及 `children` / `all` 的直属子节点；
+ * - `checkReadonly` 时，任何层级上以 `_` 开头的字段。
+ */
+export function findProtectedInside(node: any, checkReadonly: boolean): string | null {
+  if (Array.isArray(node)) {
+    for (const item of node) {
+      const reason = findProtectedInside(item, checkReadonly);
+      if (reason) return reason;
+    }
+    return null;
+  }
+  if (!_.isPlainObject(node)) return null;
+  if (_.get(node, ['$meta', 'updatable']) === false) return '其中有受 $meta.updatable 保护的内容';
+  const necessary = _.get(node, ['$meta', 'necessary']);
+  for (const key of Object.keys(node)) {
+    if (key === '$meta' || key === '$template') continue;
+    if (checkReadonly && isReadonlyKey(key)) return '其中有以 _ 开头的只读字段';
+    if (necessary === 'children' || necessary === 'all') return '其中有受 $meta.necessary 保护的内容';
+    const own = _.get(node[key], ['$meta', 'necessary']);
+    if (own === 'self' || own === 'all') return '其中有受 $meta.necessary 保护的内容';
+    const reason = findProtectedInside(node[key], checkReadonly);
+    if (reason) return reason;
+  }
+  return null;
+}
+
 export function isReadonlyKey(key: string): boolean {
   return unescapeEraData(key).startsWith('_');
 }

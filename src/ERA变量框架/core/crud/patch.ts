@@ -2,6 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-25
  * 目的：新增 <VariablePatch> 指令、宽松解析、只读字段与指令问题报告；修复第三批改动在审查中发现的问题；修复复审中发现的问题
+ *       2026-11-27 新聊天里 VariablePatch 不能改动已有的 $meta
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -45,6 +46,17 @@ interface PatchOptions {
   allowReadonly: boolean;
   /** 值来自已有的变量（移动、复制），保持原样存放。 */
   raw?: boolean;
+  /** 补全后的保护规则（新聊天）：路径不能指向 `$meta`，整体替换时不能改掉已有的 `$meta`。 */
+  strict?: boolean;
+}
+
+const META_LOCKED = 'VariablePatch 不能改动 $meta，解除保护请用 VariableInsert / VariableEdit / VariableDelete 的写法';
+
+/** 整体替换后，原来的各级 `$meta` 有没有被改掉或丢掉。 */
+function changesMeta(old: any, next: any): boolean {
+  if (!_.isPlainObject(old) || !_.isPlainObject(next)) return false;
+  if (_.has(old, '$meta') && !_.isEqual(old.$meta, next.$meta)) return true;
+  return Object.keys(old).some(key => key !== '$meta' && key !== '$template' && changesMeta(old[key], next[key]));
 }
 
 /** 解析路径：`/a/b`（JSON Pointer，`~1` 表示 `/`，`~0` 表示 `~`），或 `a.b`。返回未转义的各级键。 */
@@ -168,6 +180,7 @@ function upsert(
     let merged = _.isPlainObject(old) && _.isPlainObject(value) ? mergeReserved(old, value) : value;
     if (!options.allowReadonly) merged = keepReadonly(old, merged, target.path, issues);
     assertReplaceable(old, merged);
+    if (options.strict && !options.raw && changesMeta(old, merged)) throw new PatchFailure(META_LOCKED);
     writeUpdate(stat, target.keys, merged, log);
     return;
   }
@@ -392,12 +405,14 @@ function replaceContent(target: any, source: any): void {
  * 执行 `<VariablePatch>` 中的全部操作。纯函数。
  * @param blocks 解析出的内容：操作对象，或操作对象的数组。未转义。
  * @param allowReadonly 是否允许修改以 `_` 开头的只读字段。
+ * @param strict 补全后的保护规则（新聊天）：不能改动 `$meta`。
  */
 export async function processPatchBlocks(
   blocks: any[],
   initialStat: any,
   issues: CommandIssue[] = [],
   allowReadonly = true,
+  strict = false,
 ): Promise<{ finalStat: any; editLog: any[] }> {
   const finalStat = _.cloneDeep(initialStat);
   const editLog: any[] = [];
@@ -406,6 +421,15 @@ export async function processPatchBlocks(
     const draftLog: any[] = [];
     const snapshot = _.cloneDeep(finalStat);
     try {
+      if (strict) {
+        // 文档一直写的是“Patch 不能解除保护”：已存在的 $meta（连同它内部）不能作为操作的目标或来源
+        for (const path of [raw?.path, raw?.from, raw?.to]) {
+          if (path === undefined) continue;
+          const segments = parsePatchPath(path);
+          const meta = segments.indexOf('$meta');
+          if (meta !== -1 && locate(finalStat, segments.slice(0, meta + 1)).exists) throw new PatchFailure(META_LOCKED);
+        }
+      }
       if (!allowReadonly) {
         for (const path of [raw?.path, raw?.from, raw?.to]) {
           if (path === undefined) continue;
@@ -417,7 +441,7 @@ export async function processPatchBlocks(
           }
         }
       }
-      applyOne(finalStat, raw, draftLog, issues, { allowReadonly });
+      applyOne(finalStat, raw, draftLog, issues, { allowReadonly, strict });
       editLog.push(...draftLog);
     } catch (error: any) {
       replaceContent(finalStat, snapshot);

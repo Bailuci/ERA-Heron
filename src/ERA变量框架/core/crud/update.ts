@@ -2,6 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 修改。
  * 日期：2026-11-25 至 2026-11-26
  * 目的：VariableEdit 支持 +=、-=、*=、/= 增量运算；修复 update 日志记录过期旧值导致的回滚错误；新增 <VariablePatch> 指令、宽松解析、只读字段与指令问题报告；修复复审中发现的问题；新增表达式 $expr
+ *       2026-11-27 新聊天里整体覆盖对象时检查其中受 $meta、_ 保护的内容
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -21,7 +22,7 @@
 import { resolveKeyPath, sanitizeArrays, unescapeEraData } from '../../utils/data';
 import { Logger } from '../../utils/log';
 import { resolveArithmetic } from './arithmetic';
-import { CommandIssue, isReadonlyKey, reportIssue } from './diagnostics';
+import { CommandIssue, findProtectedInside, isReadonlyKey, reportIssue } from './diagnostics';
 import { evaluateExpr, ExprFnResolver, isExprLeaf } from './expr';
 
 const logger = new Logger();
@@ -90,6 +91,7 @@ async function applyEditAtLevel(
   issues: CommandIssue[],
   allowReadonly: boolean,
   exprCtx: EditExprContext,
+  strict = false,
 ) {
   // --- 1. 路径和存在性检查 ---
   const currentNodeInVars = basePath ? _.get(statData, basePath) : statData;
@@ -173,7 +175,7 @@ async function applyEditAtLevel(
     // **策略一：递归深入**
     // 如果指令的值是对象，则继续向内递归。
     if (_.isPlainObject(valNew)) {
-      await applyEditAtLevel(statData, subPath, valNew, editLog, issues, allowReadonly, exprCtx);
+      await applyEditAtLevel(statData, subPath, valNew, editLog, issues, allowReadonly, exprCtx, strict);
       continue; // 继续处理下一个键。
     }
 
@@ -195,6 +197,15 @@ async function applyEditAtLevel(
     // statData 是“这条消息之前的状态 + 本条消息已执行的指令”，其实时值就是回滚应恢复到的值。
     // 同一条消息内对同一路径的连续修改会形成首尾相接的日志链，逆序回滚即可还原。
     const valOld = _.get(statData, subPath);
+
+    // 用一个值整体覆盖对象时，其中受保护的内容会一起丢掉：新聊天里拒绝这样的修改
+    if (strict && _.isPlainObject(valOld)) {
+      const reason = findProtectedInside(valOld, !allowReadonly);
+      if (reason) {
+        reportIssue(issues, 'edit', subPath, `${reason}，不能整体覆盖`);
+        continue;
+      }
+    }
 
     // b. 解析增量运算（`+=`、`-=`、`*=`、`/=`）
     // 运算必须基于 statData 中的实时值，这样同一条消息内的连续运算才能正确累加。
@@ -230,6 +241,7 @@ async function applyEditAtLevel(
  * @param {any[]} allEdits - 从消息中解析出的所有 edit 指令对象。
  * @param {any} initialStat - 操作开始前的初始 `stat` 对象。
  * @param exprCtx - 表达式 `$expr` 的上下文（随机数种子、本楼开始前的变量），由 `patcher.ts` 传入。
+ * @param strict - 补全后的保护规则（新聊天）：整体覆盖对象时检查其中受保护的内容。
  * @returns {Promise<{ finalStat: any, editLog: any[] }>} 一个包含最终状态和生成日志的对象。
  */
 export async function processEditBlocks(
@@ -238,6 +250,7 @@ export async function processEditBlocks(
   issues: CommandIssue[] = [],
   allowReadonly = true,
   exprCtx: EditExprContext = defaultExprContext(initialStat),
+  strict = false,
 ): Promise<{ finalStat: any; editLog: any[] }> {
   if (!allEdits || allEdits.length === 0) {
     return { finalStat: _.cloneDeep(initialStat), editLog: [] };
@@ -254,7 +267,7 @@ export async function processEditBlocks(
       logger.debug('processEditBlocks', `处理 editRoot: `, editRoot);
       // 从根路径 '' 开始统一递归入口，保持逻辑一致性。
       // applyEditAtLevel 会直接修改 finalStat 和 editLog。
-      await applyEditAtLevel(finalStat, '', editRoot, editLog, issues, allowReadonly, exprCtx);
+      await applyEditAtLevel(finalStat, '', editRoot, editLog, issues, allowReadonly, exprCtx, strict);
     } catch (e: any) {
       logger.error('processEditBlocks', `处理 editRoot 失败: ${e?.message || e}`, {
         error: e,

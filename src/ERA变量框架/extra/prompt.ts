@@ -5,6 +5,7 @@
  *       2026-11-27 注册了工具或公式函数时，提示词附上说明并允许 <EraFCall>
  *       2026-11-27 可选条目“ERA 表达式规则”视为内置的更新条目；聊天记录去掉旧卡的状态栏占位符；{{ERA-issues}} 展开为空
  *       2026-11-27 可选附上角色描述与用户人设（设置“附带角色信息”）
+ *       2026-11-27 上一条玩家消息带正文前规划时，告诉更新模型已经执行的规划指令并要求不要重复
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -29,10 +30,10 @@ import { stripStatusPlaceholderText } from '../macro/placeholder';
 import { unescapeEraData } from '../utils/data';
 import { removeMetaFields } from '../utils/era_data';
 import { Logger } from '../utils/log';
-import { getMessageContent, isUserMessage, stripCommandBlocks } from '../utils/message';
+import { extractExecutedBlocks, getMessageContent, isUserMessage, stripCommandBlocks } from '../utils/message';
 import { ExtraConfig } from './config';
 import { describeActiveSchema, describeExprFns, describeTools } from './describe';
-import { readPlanSummary } from './plan_block';
+import { findPlanBlock, readPlanSummary } from './plan_block';
 import { createEjsRenderer, Decorator, EjsRenderer, getEjsEngine, isSpecialEntry, parseDecorators } from './ejs';
 import { applyEntryFilters, EntryFilterContext, getActiveEntryFilters } from './entry_filter';
 
@@ -349,6 +350,24 @@ export interface PromptInput {
   feedback?: { output: string; problems: string[] };
 }
 
+/**
+ * 目标楼之前那条玩家消息里的正文前规划：摘要和已经执行的指令。
+ * 剧情模型是照着规划结果写正文的，不告诉更新模型的话，它会按正文把同一个结果再算一遍。
+ */
+export function readSettledPlan(messages: any[]): string {
+  // 目标楼是最后一条；往前找到上一条 AI 消息为止，只看这一轮的玩家消息
+  for (let i = messages.length - 2; i >= 0; i--) {
+    const msg = messages[i];
+    if (!isUserMessage(msg)) break;
+    const block = findPlanBlock(getMessageContent(msg) ?? '');
+    if (!block) continue;
+    const summary = readPlanSummary(block);
+    const commands = extractExecutedBlocks(block);
+    return _.compact([summary ? `结算结果：${summary}` : '', commands]).join('\n');
+  }
+  return '';
+}
+
 export function buildExtraPrompts(input: PromptInput): { role: 'system' | 'assistant' | 'user'; content: string }[] {
   const { messages, entries, group, config, feedback } = input;
   const stat = unescapeEraData(input.stat);
@@ -400,8 +419,12 @@ ${tools}
     const lines = earlier.map((msg, i) => formatMessage(msg, recent.length - 1 - i)).filter(Boolean);
     prompts.push({ role: 'user', content: `<之前的剧情>\n${lines.join('\n\n')}\n</之前的剧情>` });
   }
+  const settled = readSettledPlan(messages);
   const tail = [
     `<最新剧情>\n${formatMessage(recent[recent.length - 1], 0)}\n</最新剧情>`,
+    settled
+      ? `<本轮已结算>\n${settled}\n</本轮已结算>\n以上结果在写这段剧情之前就已经结算，并且已经计入当前变量；最新剧情只是照着它写的。不要把这些变化再输出一遍，只更新剧情里另外发生的变化。`
+      : '',
     input.executed
       ? `<已执行的更新>\n${input.executed}\n</已执行的更新>\n以上更新已经计入当前变量，不要重复，只补充遗漏的部分。`
       : '',

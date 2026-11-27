@@ -2,6 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-26
  * 目的：长聊天诊断：统计聊天数据体积（stat_data、EditLogs、ApiOps、正文）与当前挂载的状态栏 iframe 数
+ *       2026-11-27 存档清空后不再显示“已存档到文件”
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -12,7 +13,14 @@
  */
 'use strict';
 
-import { API_OPS_PATH, LOG_ARCHIVE_PATH, LOGS_PATH, META_DATA_PATH, STAT_DATA_PATH } from '../utils/constants';
+import {
+  API_OPS_PATH,
+  FOLDED_MK_PATH,
+  LOG_ARCHIVE_PATH,
+  LOGS_PATH,
+  META_DATA_PATH,
+  STAT_DATA_PATH,
+} from '../utils/constants';
 
 export interface ChatSizeReport {
   /** 消息条数。 */
@@ -105,7 +113,8 @@ export function measureChatSize(chatVariables: any, messages: any[], iframes: nu
         )
       : 0,
     otherMeta: jsonBytes(_.omit(meta, [LOGS_PATH, API_OPS_PATH])),
-    archived: !_.isEmpty(meta[LOG_ARCHIVE_PATH]),
+    // 存档清空后会留下索引对象；只有日志确实折叠过、并且还有分段时才算“更早的已存档”
+    archived: !!meta[FOLDED_MK_PATH] && !_.isEmpty(_.get(meta, [LOG_ARCHIVE_PATH, 'segments'])),
     text: shown,
     allSwipes: all,
     iframes,

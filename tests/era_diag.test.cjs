@@ -658,6 +658,15 @@ test('聊天数据体积：按 UTF-8 字节统计变量、日志、旁路写入�
   assert.equal(report.allSwipes, 6 + 6 + 3);
   assert.equal(report.iframes, 3);
   assert.equal(report.archived, false);
+  // 存档清空后会留下索引对象：没有折叠标记或没有分段时，不能显示“更早的已存档到文件”
+  const archived = meta => size.measureChatSize({ stat_data: {}, ERAMetaData: meta }, [], 0).archived;
+  assert.equal(archived({ LogArchive: { owner: 'c', next: 0, segments: [] } }), false);
+  assert.equal(archived({ LogArchive: { owner: 'c', next: 1, segments: [{ path: 'p' }] } }), false);
+  assert.equal(archived({ FoldedThroughMk: 'm3', LogArchive: { owner: 'c', next: 0, segments: [] } }), false);
+  assert.equal(
+    archived({ FoldedThroughMk: 'm3', LogArchive: { owner: 'c', next: 1, segments: [{ path: 'p' }] } }),
+    true,
+  );
 });
 
 /** 在假的 iframe 环境里运行默认状态栏的脚本。 */

@@ -167,7 +167,7 @@ test('规划块：新聊天设置了指令外层标签时，指令包在外层�
   assert.equal(env.stat().敌人.生命, 6);
 });
 
-test('规划块：数据隐藏正则整块隐藏；发给更新模型的聊天只保留摘要', async () => {
+test('规划块：数据隐藏正则整块隐藏；更新模型在聊天里只看到摘要，并被告知已经执行的规划指令', async () => {
   const env = await setup();
   const { HIDE_ERA_DATA_REGEX } = env.load('initer/manual/regex_objects/hide_era_data');
   const [, body, flags] = /^\/(.*)\/([a-z]*)$/s.exec(HIDE_ERA_DATA_REGEX.find_regex);
@@ -176,21 +176,46 @@ test('规划块：数据隐藏正则整块隐藏；发给更新模型的聊天�
   assert.equal(text.replace(new RegExp(body, flags), ''), '攻击\n');
   const { stripCommandBlocks } = env.load('utils/message');
   assert.equal(stripCommandBlocks(text).trim(), '攻击');
-  const { buildExtraPrompts } = env.load('extra/prompt');
-  const prompts = buildExtraPrompts({
-    messages: [
-      { message_id: 0, role: 'user', mes: text },
-      { message_id: 1, role: 'assistant', mes: '你一剑命中。' },
-    ],
-    entries: [{ name: '[era_update]规则', content: '规则', order: 0, group: '' }],
-    group: '',
-    stat: env.stat(),
-    executed: '',
-    config: { 聊天楼层数: 2, 附加要求: '' },
-  });
+  const { buildExtraPrompts: build0, readSettledPlan } = env.load('extra/prompt');
+  const build = messages =>
+    build0({
+      messages,
+      entries: [{ name: '[era_update]规则', content: '规则', order: 0, group: '' }],
+      group: '',
+      stat: env.stat(),
+      executed: '',
+      config: { 聊天楼层数: 4, 附加要求: '' },
+    });
+  const last = prompts => prompts[prompts.length - 1].content;
+  const prompts = build([
+    { message_id: 0, role: 'user', mes: text },
+    { message_id: 1, role: 'assistant', mes: '你一剑命中。' },
+  ]);
   const all = prompts.map(p => p.content).join('\n');
   assert.match(all, /攻击\n（本轮已结算：命中）/);
-  assert.doesNotMatch(all, /PlanSummary|VariableEdit>\{"敌人"/);
+  assert.doesNotMatch(all, /PlanSummary/);
+  // 剧情是照着规划结果写的：必须把已执行的规划指令列出来并要求不要重复，否则同一个结果会被算两次
+  const tail = last(prompts);
+  assert.ok(tail.includes(`<本轮已结算>\n结算结果：命中\n${T('Edit', { 敌人: { 生命: 6 } })}\n</本轮已结算>`));
+  assert.match(tail, /已经计入当前变量[^\n]*不要把这些变化再输出一遍/);
+  assert.ok(tail.indexOf('<最新剧情>') < tail.indexOf('<本轮已结算>'));
+
+  // 没有规划、规划属于更早的一轮时不出现
+  assert.ok(!last(build([{ message_id: 0, role: 'assistant', mes: '开场' }])).includes('<本轮已结算>'));
+  const later = build([
+    { message_id: 0, role: 'user', mes: text },
+    { message_id: 1, role: 'assistant', mes: '你一剑命中。' },
+    { message_id: 2, role: 'user', mes: '继续前进' },
+    { message_id: 3, role: 'assistant', mes: '你走进了森林。' },
+  ]);
+  assert.ok(!last(later).includes('<本轮已结算>'));
+  assert.equal(
+    readSettledPlan([
+      { role: 'user', mes: '只有正文' },
+      { role: 'assistant', mes: 'x' },
+    ]),
+    '',
+  );
 });
 
 test('[era_plan] 条目不发给剧情模型和更新模型；[era_both] 两边都发', async () => {
@@ -507,6 +532,14 @@ test('规划请求：带上头部提示词、规划模型的预设与流式；�
   assert.match(missing.warnings.join('\n'), /无法读取预设“已删除”/);
   assert.equal(controller.getExtraStatus().history.length, 2);
   assert.match(controller.getExtraStatus().history[0].warnings.join('\n'), /已删除/);
+
+  // 重新规划时传入的是玩家楼的原文：消息密钥和原来的规划块都不发给规划模型
+  await controller.planText(
+    '再砍一剑<era_data>{"era-message-key"="era_mk_1_x"}</era_data>\n<era_plan>\n<PlanSummary>旧</PlanSummary>\n</era_plan>',
+  );
+  const sent = requests[requests.length - 1].ordered_prompts.map(p => p.content).join('\n');
+  assert.ok(sent.includes('<玩家这一轮的行动>\n再砍一剑\n</玩家这一轮的行动>'));
+  assert.doesNotMatch(sent, /era_data|era-message-key|PlanSummary>旧/);
 
   const none = await setup({ entries: [entry('[era_update]规则', '更新规则')] });
   const noneController = none.load('extra/controller');

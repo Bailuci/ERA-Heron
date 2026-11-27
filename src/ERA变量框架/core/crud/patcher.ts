@@ -4,6 +4,7 @@
  * 目的：新增可选的变量结构 schema 校验与全局接口 Era；修复 schema 校验在审查与实测中发现的问题；修复 update 日志记录过期旧值导致的回滚错误；新增更新钩子 Era.onBeforeApply / Era.onAfterApply等；表达式 $expr 的上下文与随机数种子
  *       2026-11-26 按聊天的解析版本解析正文（新聊天遮蔽思考块、可只认指令外层标签内的指令）
  *       2026-11-27 问题与拦截记录带上指令的来源标记 source（额外模型输出、旁路写入），只用于报告；执行工具调用 <EraFCall>，表达式可调用自定义公式函数
+ *       2026-11-27 按聊天的解析版本把保护规则传给各指令
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -40,7 +41,7 @@ import { EraCommand, extractAndParseCommands, isUserMessage } from '../../utils/
 import { processDeleteBlocks } from './delete';
 import { processInsertBlocks } from './insert/insert';
 import { interleaveApiOps } from '../api_ops';
-import { getParseOptions } from '../version';
+import { getParseOptions, isStrictProtection } from '../version';
 import { runAfterApplyHook, runBeforeApplyHook } from '../hooks';
 import { runToolCall, TOOL_MAX_CALLS_PER_FLOOR, ToolCallResult } from '../tools';
 import { applySchemaToBlock, normalizeStat, SchemaCheckResult, SchemaRejection } from '../schema';
@@ -81,10 +82,11 @@ async function runPatchCommand(
   stat: any,
   issues: CommandIssue[],
   allowReadonly: boolean,
+  strict: boolean,
 ): Promise<SchemaCheckResult> {
   const active = getActiveSchema();
   const wholeIssues: CommandIssue[] = [];
-  const whole = await processPatchBlocks(data, stat, wholeIssues, allowReadonly);
+  const whole = await processPatchBlocks(data, stat, wholeIssues, allowReadonly, strict);
   const check: SchemaCheckResult =
     active && whole.editLog.length > 0
       ? applySchemaToBlock(active.schema, stat, whole.finalStat, whole.editLog, active)
@@ -104,7 +106,7 @@ async function runPatchCommand(
     progress = false;
     const rest: typeof pending = [];
     for (const { op, rejections } of pending) {
-      const result = await processPatchBlocks([op], currentStat, first ? issues : [], allowReadonly);
+      const result = await processPatchBlocks([op], currentStat, first ? issues : [], allowReadonly, strict);
       if (result.editLog.length === 0) {
         if (!first) rest.push({ op, rejections });
         continue;
@@ -169,6 +171,8 @@ export const ApplyVarChangeForMessage = async (
   try {
     logger.debug('ApplyVarChangeForMessage (Pure)', `开始提取并解析指令...`);
     const commandIssues: CommandIssue[] = [];
+    // 保护规则按聊天的解析版本决定：旧聊天重算时结果不变
+    const strict = isStrictProtection(meta);
     // 1. 从消息中提取、解析并转义所有指令，得到一个按顺序排列的指令数组。
     //    旁路 API 写入在这里与正文指令合并，之后的流程（钩子、schema、日志）不区分两者。
     let commands: EraCommand[] = interleaveApiOps(
@@ -287,6 +291,7 @@ export const ApplyVarChangeForMessage = async (
             commandIssues,
             allowReadonly,
             exprContextFor(command),
+            strict,
           );
           logger.debug('ApplyVarChangeForMessage (Pure)', '处理 Edit 指令完成', {
             inputStat: currentStat,
@@ -295,7 +300,7 @@ export const ApplyVarChangeForMessage = async (
           });
           break;
         case 'delete':
-          result = await processDeleteBlocks(command.data, currentStat, commandIssues, allowReadonly);
+          result = await processDeleteBlocks(command.data, currentStat, commandIssues, allowReadonly, strict);
           logger.debug('ApplyVarChangeForMessage (Pure)', '处理 Delete 指令完成', {
             inputStat: currentStat,
             outputStat: result.finalStat,
@@ -305,7 +310,7 @@ export const ApplyVarChangeForMessage = async (
         case 'patch':
           normalizeWithSchema();
           {
-            const check = await runPatchCommand(command.data, currentStat, commandIssues, allowReadonly);
+            const check = await runPatchCommand(command.data, currentStat, commandIssues, allowReadonly, strict);
             reportSchemaSkip(check);
             if (check.rejections.length > 0) {
               logger.warn('ApplyVarChangeForMessage (Pure)', '以下修改不符合变量结构，已被拦截', check.rejections);

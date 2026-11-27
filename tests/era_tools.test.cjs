@@ -157,7 +157,7 @@ test('新聊天里思考块中的工具调用不执行', async () => {
   const env = create_chat({ tools: [DOUBLE] });
   env.send('assistant', `<think>${CALL('double')}</think>${T('Insert', { a: 3 })}${CALL('double')}`);
   await env.sync();
-  assert.equal(env.meta().ParserVersion, 2);
+  assert.equal(env.meta().ParserVersion, 3);
   assert.deepEqual(plain(env.stat()), { a: 3, c: 6 });
 });
 

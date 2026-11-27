@@ -524,7 +524,7 @@ async function fuzz(seed, options) {
       const decoyed = stat.思考 !== undefined || stat.外 !== undefined || ['思考', '外'].includes(stat.a?.x);
       if (options.legacy) decoy_hits.legacy += decoyed ? 1 : 0;
       else assert.ok(!decoyed, `示例指令生效了 ${where}`);
-      assert.equal(c.meta().ParserVersion, options.legacy ? undefined : 2, where);
+      assert.equal(c.meta().ParserVersion, options.legacy ? undefined : 3, where);
     }
   }
   return ops_done;

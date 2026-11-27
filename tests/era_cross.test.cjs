@@ -120,7 +120,7 @@ const OUTER = { outer: 'ERA_Update', settings: { 指令外层标签: 'ERA_Update
 test('A：开启指令外层标签时，额外模型的错误输出仍会被识别并重试', async () => {
   for (const options of [{}, OUTER]) {
     const env = await story(options);
-    assert.equal(env.meta().ParserVersion, 2);
+    assert.equal(env.meta().ParserVersion, 3);
     const { result, calls } = await run(env, [T('Edit', { 钱: 1 }), T('Edit', { 金币: 7 })]);
     assert.deepEqual(result, { status: 'done', problems: [], warnings: [] });
     assert.equal(calls.length, 2, `第一次的错误输出应当触发重试（${options.outer ?? '无外层标签'}）`);
@@ -699,7 +699,18 @@ test('setMessageText：改写正文后按新正文重算，保留 MK 与额外�
 test('setMessageText：钩子里调用被拒绝；楼层不存在或没有 MK 时失败', async () => {
   const env = await story();
   const Era = env.Era();
+  // 酒馆助手的 getChatMessages 会把越界的楼层号夹到首楼或末楼：不能因此改写别的楼
+  const before = env.chat.map(m => [...m.swipes]);
   await assert.rejects(Era.setMessageText(99, 'x'), /目标消息不存在/);
+  await assert.rejects(Era.setMessageText(-99, 'x'), /目标消息不存在/);
+  await assert.rejects(Era.setMessageText({ message_id: 99 }, 'x'), /目标消息不存在/);
+  assert.deepEqual(
+    env.chat.map(m => [...m.swipes]),
+    before,
+  );
+  assert.throws(() => Era.keepMessageKey('x', 99), /目标消息不存在/);
+  assert.throws(() => Era.keepMessageKey('x', -99), /目标消息不存在/);
+  assert.match(Era.keepMessageKey('x', -1), /^x\n<era_data>/);
   await assert.rejects(Era.setMessageText({}, 'x'), /需要指定楼层/);
   await assert.rejects(Era.setMessageText(0, 123), /text 必须是字符串/);
   const reentry = env.load('core/reentry');

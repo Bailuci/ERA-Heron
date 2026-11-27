@@ -2,6 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 修改。
  * 日期：2026-11-25
  * 目的：新增 <VariablePatch> 指令、宽松解析、只读字段与指令问题报告；修复复审中发现的问题
+ *       2026-11-27 新聊天里非对象值的删除写法同样受 necessary:"children" 保护
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -44,6 +45,7 @@ function applyDeleteAtLevel(
   editLog: any[],
   issues: CommandIssue[],
   allowReadonly: boolean,
+  strict = false,
 ) {
   // --- 1. 入口守卫和状态获取 ---
   const currentNodeInVars = basePath ? _.get(statData, basePath) : statData;
@@ -89,7 +91,10 @@ function applyDeleteAtLevel(
 
       // 新增：检查 'children' 保护
       // 这会阻止直接删除受保护节点的直属子节点。
-      if (necessary === 'children' && _.isPlainObject(subPatchObj) && _.isEmpty(subPatchObj)) {
+      // 空对象表示删除这个子节点；`null`、字符串、数组等非对象值同样表示删除，
+      // 旧聊天里只拦了空对象（保持原样），新聊天里一并拦下
+      const deletesChild = _.isPlainObject(subPatchObj) ? _.isEmpty(subPatchObj) : strict;
+      if (necessary === 'children' && deletesChild) {
         // 豁免条件：允许通过特定指令删除 '$meta' 来解除保护。
         if (key === '$meta' && isBypassingProtection) {
           // 明确意图是移除保护，允许操作继续。
@@ -110,7 +115,7 @@ function applyDeleteAtLevel(
         reportIssue(issues, 'delete', fullPath, '以 _ 开头的字段是只读的');
         continue;
       }
-      applyDeleteAtLevel(statData, fullPath, subPatchObj, editLog, issues, allowReadonly);
+      applyDeleteAtLevel(statData, fullPath, subPatchObj, editLog, issues, allowReadonly, strict);
     }
     return; // 子节点处理完毕，返回。
   }
@@ -158,6 +163,7 @@ export async function processDeleteBlocks(
   initialStat: any,
   issues: CommandIssue[] = [],
   allowReadonly = true,
+  strict = false,
 ): Promise<{ finalStat: any; editLog: any[] }> {
   if (!allDeletes || allDeletes.length === 0) {
     return { finalStat: initialStat, editLog: [] };
@@ -171,7 +177,7 @@ export async function processDeleteBlocks(
     try {
       logger.debug('processDeleteBlocks', () => `处理 deleteRoot: ${JSON.stringify(deleteRoot)}`);
       // 从根路径开始递归
-      applyDeleteAtLevel(currentStat, '', deleteRoot, editLog, issues, allowReadonly);
+      applyDeleteAtLevel(currentStat, '', deleteRoot, editLog, issues, allowReadonly, strict);
     } catch (e: any) {
       logger.error('processDeleteBlocks', `处理 deleteRoot 失败: ${e?.message || e}`, {
         error: e,
