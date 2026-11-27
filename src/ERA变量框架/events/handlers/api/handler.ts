@@ -4,6 +4,7 @@
  * 目的：API 写入与 forceSync 在事件队列中等待完成；新增脚本设置“API写入不修改消息”；修复第二批改动在审查中发现的问题；新增额外模型分步更新、等待式提交、试算与变量结构说明等；更新过时的注释与路径示例；
  *       2026-11-26 Era.applyText 经 commit 提交文本中的指令；新聊天设置了指令外层标签时，追加到正文的指令块包在外层标签里
  *       2026-11-27 atomic 预检与实际写入使用相同的压缩参数，含 $expr 的写入预检与落盘的骰点一致；Era.commit 可以写工具调用 { call }；幂等键 key
+ *       2026-11-28 写入事件追加指令块时保留正文里的宏；问题说明不重复路径
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -41,7 +42,7 @@ import { Logger } from '../../../utils/log';
 import {
   countCommandBlocks,
   findLastAiMessage,
-  getMessageContent,
+  getRawMessageContent,
   isUserMessage,
   updateMessageContent,
 } from '../../../utils/message';
@@ -49,6 +50,7 @@ import { debouncedEmitApiWrite, emitQueryResultEvent, emitWriteDoneEvent } from 
 import { EventJob } from '../../merger';
 import { ActionsTaken, DispatcherPayload } from '../../types';
 import { handleSyncEvent } from '../sync';
+import { describeIssue } from '../../../core/crud/diagnostics';
 import { ApiTicket, assertTicket, registerTicket } from './tickets';
 
 const logger = new Logger();
@@ -172,7 +174,8 @@ async function performApiWrite(job: ApiWriteJob) {
     return;
   }
 
-  const originalContent = getMessageContent(lastAiMessage) ?? '';
+  // 必须取未展开宏的原文：getMessageContent 会把 {{user}}、{{char}} 换成当前的名字，写回去就固定下来了
+  const originalContent = getRawMessageContent(lastAiMessage);
   const newContent = originalContent + block;
 
   logger.debug('performApiWrite', `实时写入 API 任务 (${job.blockTag}) 到消息 ID ${lastAiMessage.message_id}...`);
@@ -253,7 +256,7 @@ const isTextCommit = (detail: any): detail is TextCommitDetail =>
 /** 把 `Era.applyText` 的文本解析成旁路写入；没有可以执行的指令时抛出异常，`atomic` 时有无法解析的块也抛出。 */
 function textToApiOps(detail: TextCommitDetail, after: number): ApiOp[] {
   const { ops, issues } = createTextApiOps(detail.text, after, settings.value.繁体转简体, getCurrentParseOptions());
-  if (detail.atomic && issues.length > 0) throw new Error(`提交被放弃: ${issues[0].path}: ${issues[0].reason}`);
+  if (detail.atomic && issues.length > 0) throw new Error(`提交被放弃: ${describeIssue(issues[0])}`);
   if (ops.length === 0) {
     throw new Error(issues.length > 0 ? `文本中的指令无法解析: ${issues[0].reason}` : '文本中没有可以执行的指令');
   }
@@ -311,7 +314,7 @@ export async function commit(detail: CommitDetail | TextCommitDetail, ticket?: A
       const simulator = target && (await createFloorSimulator(target.msg));
       if (!target || !simulator) throw new Error('该楼之前的日志已折叠，无法预先检查；请不要使用 atomic');
       const { problems } = await simulator.run({ ops: prepare(target.msg), compact: compactOps() });
-      if (problems.length > 0) throw new Error(`提交被放弃: ${problems[0].path}: ${problems[0].reason}`);
+      if (problems.length > 0) throw new Error(`提交被放弃: ${describeIssue(problems[0])}`);
     }
 
     const { msg, mk } = target;

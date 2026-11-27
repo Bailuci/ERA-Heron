@@ -7,6 +7,7 @@
  *       2026-11-27 请求加上头部提示词、酒馆预设与流式请求（见 request.ts）；status().history 保留最近几次分步更新与规划的请求记录
  *       2026-11-27 主生成标记不再因斜杠命令等提前返回而卡住（还要求酒馆正处于生成中）；规划摘要只在与 GENERATION_STARTED 配对的 AFTER_COMMANDS 注入；带 ID 的停止不撤注入；切换聊天后旧聊天的结果不再写进新聊天
  *       2026-11-27 等待中的楼层按 getMessageAt 取；重新规划时不把 <era_data> 发给规划模型
+ *       2026-11-28 新增 runExtraAuto、getExtraSwitches、planInjectionOf
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -351,6 +352,29 @@ export async function runExtraManually(mk?: string): Promise<ExtraRunResult> {
   }
   return startExtra(target, true);
 }
+
+/**
+ * 按自动触发的同样条件解析一楼：没有开启分步更新、是玩家消息、正文自己带有指令时不请求，返回 `null`。
+ * 给自己建楼的前端用（脚本建的楼不会触发自动解析）。成功和无变化时不弹提示，与自动解析相同。
+ */
+export async function runExtraAuto(msg: any): Promise<ExtraRunResult | null> {
+  const mk = msg ? readMessageKey(msg) : '';
+  if (!mk) throw new Error('这一楼还没有被 ERA 登记（没有 MK），请等同步完成后再解析');
+  if (!isExtraEnabled() || isUserMessage(msg) || hasOwnCommands(msg)) return null;
+  return startExtra(mk, false);
+}
+
+/** 分步更新与正文前规划当前实际生效的开关（已经合并角色卡推荐、默认值，规划在群聊里不生效）。 */
+export const getExtraSwitches = (): { update: boolean; plan: boolean } => ({
+  update: isExtraEnabled(),
+  plan: isPlanEnabled(),
+});
+
+/** 一段玩家消息里的规划，对应要注入给剧情模型的那段文字；没有规划摘要时是空字符串。 */
+export const planInjectionOf = (text: string): string => {
+  const summary = readPlanSummary(String(text ?? ''));
+  return summary ? formatPlanInjection(summary) : '';
+};
 
 // ============================ 正文前规划（1.8 起） ============================
 

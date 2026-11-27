@@ -88,7 +88,7 @@ export const Schema = z.object({
 - **已发布的卡给 schema 新增字段时，新字段必须带 `.prefault(…)` 或 `.default(…)`**；新增的是嵌套对象时，外层对象本身也要 `.prefault({})`，内层字段都有默认值不等于外层有。否则玩家已有聊天的变量不再符合结构。这时 ERA 照常放行，面板提示“变量当前不符合结构”，玩家可以在面板“诊断 → 结构诊断”查看并一键修复。
 - 注册方式二选一：
   - 酒馆助手**角色卡脚本**里直接写：`await waitGlobalInitialized('Era'); const off = Era.registerSchema(Schema); $(window).on('pagehide', off);`。ERA 脚本被重新启用或更新后 schema 会丢失，需要重新加载角色卡脚本。
-  - 用酒馆助手前端模板（vue + pinia）的项目：把 `开发工具/era.ts` 复制到与模板的 `mvu.ts` 同一目录、`开发工具/exported.era.d.ts` 复制到与 `exported.mvu.d.ts` 同一类型目录，然后 `import { registerEraSchema } from '@util/era'; $(() => errorCatched(registerEraSchema)(Schema));`（它会处理 ERA 晚加载、ERA 重载后补注册、脚本卸载）。**推荐。**
+  - 用酒馆助手前端模板（vue + pinia）的项目：把 `开发工具/era.ts` 复制到与模板的 `mvu.ts` 同一目录、`开发工具/exported.era.d.ts` 复制到项目根目录（不要放进 `@types/`，模板的依赖升级会清空它），然后 `import { registerEraSchema } from '@util/era'; $(() => errorCatched(registerEraSchema)(Schema));`（它会处理 ERA 晚加载、ERA 重载后补注册、脚本卸载）。**推荐。**
 - 注册后在控制台执行 `Era.hasSchema()` 确认为 `true`；schema 无效时 ERA 会弹窗“变量结构注册失败”。
 - 不在开场白里初始化、完全靠默认值的卡，注册时传 `{ fillDefaultsOnEmpty: true }`。
 
@@ -106,6 +106,7 @@ export const Schema = z.object({
 ```
 
 - 所有变量在开场白里一次初始化完。之后的消息里对已存在的路径用 `<VariableInsert>` 会被忽略。
+- 初始值里不要写 `<user>`、`<char>`、`<bot>` 这类称呼标记：指令块里 ERA 只展开 `{{user}}` 和 `{{char}}`，其余会原样存进变量。
 - 需要统一结构的集合，可以在父节点上放 `$template`（新插入的元素自动补全字段）；需要保护的节点放 `$meta`。用法见 `doc/02-指令手册.md`。
 - 改了开场白之后，要**新开聊天**才会生效。
 - 用制卡母版（tavern_era_template）的项目：把初始值写在卡文件夹的 `initvar.yaml`，开场白末尾留 `<!-- ERA-INIT:BEGIN -->` / `<!-- ERA-INIT:END -->` 两行标记，运行 `pnpm era-init` 生成这块 `<VariableInsert>`（按 schema 校验，并把 schema 里 `.meta({ era: {…} })` 标的保护写成 `$meta`）。见母版的 `初始模板/ERA角色卡/使用说明.md`。
@@ -170,6 +171,7 @@ export const Schema = z.object({
 - **楼层里的状态栏**只监听 `era:writeDone` 时，每一楼都显示最新变量。想让旧楼显示“那一楼当时”的值，用 `defineEraFloorStore(Schema)` 或 `await Era.getVarsAt(getCurrentMessageId())`（每次 `era:writeDone` 后重新读取）；只想在最新一楼显示完整状态栏，用 `isLatestFloor()` 判断。见 `doc/05-接口与设置.md` 第 9 节。快速初始化生成的状态栏模板这样区分：最后一楼显示最新变量并监听 `era:writeDone`；旧楼只在加载时读一次那一楼当时的值、不再监听，长聊天里每次写入只刷新最后一楼（编辑、删除更早的楼层后，已显示的旧楼要重新渲染才更新）。改模板时保留这个区分，见 `doc/03-状态栏.md`。
 - 前端**写变量**：用 store 的 `commit` / `patch`，或直接 `await Era.commit([...], { atomic: true })`，失败时 Promise 会说明原因（例如金币不足被 schema 拒绝）；只能生效一次的操作传幂等键 `{ key: '…' }`。store 的 `update` / `insert` / `remove` 只为兼容旧版保留，拿不到结果，新代码不要用。频繁写入（滑块等）请做防抖。
 - **同层前端自己请求 AI 或改写正文**：执行回复文本里的指令用 `await Era.applyText(reply, { message_id, atomic, key })`（不改正文，存为旁路写入）；需要改写楼层正文并触发重算时用 `await Era.setMessageText(where, newText)`（自动保留 `<era_data>` 和 `<era_extra>`）；坚持用 `setChatMessages` 改写正文时，必须用 `Era.keepMessageKey(newText, from)` 保留这两个块并自行发 `era:forceSync`。多回合建议每回合建一条隐藏楼层，避免单楼旁路写入越积越慢，见 `doc/03-状态栏.md`。
+- **同层前端必读**：`doc/03-状态栏.md` 的“同层前端须知”和“改写正文时要自己带回的内容”。要点：`generate()` 不运行条目过滤器、不自动规划也不注入规划结算（用 `Era.extra.plan` 和 `Era.extra.planInjection`）；脚本建的楼不触发自动分步更新（用 `Era.extra.autoRun`）；脚本删楼、切 swipe 后先 `await Era.sync()`；改写正文时指令块要原样带回。
 - 前端自己发消息（`/send`、`/trigger`）之前先 `await Era.extra.wait()`，否则开启分步更新时，下一次生成可能还看不到最新变量。
 - 想显示“变量更新中”，监听 `era:extraStatus`；界面加载时先用 `Era.extra.status().running` 恢复，免得错过已经发出的 `started`。
 
@@ -217,6 +219,7 @@ $(window).on('pagehide', off);
 适合变量多、剧情模型经常漏写或写错指令的卡。做法：
 
 1. 给只发给更新模型的条目名字加 `[era_update]`（`ERA 变量操作规则`、`ERA 变量意图说明`、`ERA 表达式规则` 自动视为这类），两边都要看的设定加 `[era_both]`，变量很多时用 `[era_update:组名]` 分组并行。
+   - 开启分步更新后，`ERA 变量意图说明` 里的 `{{ERA:$ALLDATA}}` 剧情模型看不到。把剧情需要的变量另放进一个剧情条目或 `[era_both]` 条目。
 2. 确认没有其他条目或预设要求剧情模型输出指令（见第 4 步）。
 3. 玩家在 ERA 面板的“分步更新”页里开启并选择接口。这是玩家本机的设置，不随卡导出；卡里只需要做好条目标记，不开启时照常工作。
 4. 专为分步更新设计的卡，可以在角色卡变量 `ERA分步更新` 里推荐开启（如 `{ 变量更新方式: '额外模型解析', 重试次数: 2 }`），随卡导出；玩家“变量更新方式”为“跟随角色卡”（默认）时采用。也可以在面板“分步更新”页调好后点“存为本卡推荐”写入。更新模型需要了解角色时可以推荐 `附带角色信息: '开启'`（附上角色描述与用户人设）；`更新模型预设`、`规划模型预设` 只能推荐 `'不使用预设'`（默认）或 `'使用当前预设'`，一般不要推荐使用预设（预设里写给剧情模型的要求会干扰更新模型）。接口、密钥、头部提示词、请求方式和具体的预设名是玩家本机的设置，不能推荐。
@@ -250,7 +253,7 @@ $(window).on('pagehide', off);
 
 **思考块与外层标签**：`思考标签` 和 `指令外层标签` 只对新建的聊天生效，更早的聊天照旧全文执行指令。`指令外层标签` 要在新聊天开始时就设好：聊天进行到一半才开启，之前没有包外层标签的楼层在下次重算时指令全部失效，变量会变。开启时在 `ERA 变量意图说明` 里要求 AI 把指令块放进这个标签；外层标签本身不在 ERA 的隐藏正则里，要另写正则隐藏。
 
-**声明需要的 ERA 版本**：卡用到 `$expr`、条目过滤器、`{{ERA-issues}}`、`思考标签` 等功能时，在角色卡变量里写 `ERA最低版本: '2.0.2'`，玩家的 ERA 低于它时加载角色卡会提示一次。较早版本的 ERA 不认识这个变量；需要它们也提示时，在角色卡脚本或前端里调用 `开发工具/era.ts` 的 `await requireEra('2.0.2')`（不满足时弹窗并返回 `false`）。
+**声明需要的 ERA 版本**（填你依赖其行为并实测过的版本；同时用分步更新和正文前规划的卡至少写 `2.0.3`，自己建楼或自己调用 `generate()` 的前端用到 `Era.sync`、`Era.extra.autoRun` 等接口时写 `2.0.4`）：卡用到 `$expr`、条目过滤器、`{{ERA-issues}}`、`思考标签` 等功能时，在角色卡变量里写 `ERA最低版本: '2.0.2'`，玩家的 ERA 低于它时加载角色卡会提示一次。较早版本的 ERA 不认识这个变量；需要它们也提示时，在角色卡脚本或前端里调用 `开发工具/era.ts` 的 `await requireEra('2.0.2')`（不满足时弹窗并返回 `false`）。
 
 ## 第 9 步：测试
 

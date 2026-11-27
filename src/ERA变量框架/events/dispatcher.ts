@@ -2,11 +2,13 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 修改。
  * 日期：2026-11-25 至 2026-11-26
  * 目的：API 写入与 forceSync 在事件队列中等待完成；修复第三批改动在审查中发现的问题；不再为调试日志在每个任务前读取整段聊天；用户消息含指令时发送后立即计算
+ *       2026-11-28 玩家消息只登记 MK 之前检查楼层记录：脚本删楼后没有同步时改为按同步处理
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 'use strict';
 
-import { ERA_API_EVENTS, ERA_EVENT_EMITTER } from 'ERA变量框架/utils/constants';
+import { ERA_API_EVENTS, ERA_EVENT_EMITTER, SEL_PATH } from 'ERA变量框架/utils/constants';
+import { getEraData } from '../utils/era_data';
 import { ensureMkForLatestMessage } from '../core/key/mk';
 import { initializeExternalSettings } from '../initer/auto/settings';
 import { ensurePlaceholder } from '../macro/placeholder';
@@ -104,6 +106,18 @@ function updateConsecutiveMkCount(): number {
     consecutiveMkState = { mk: mk, count: 1 };
   }
   return consecutiveMkState.count;
+}
+
+/**
+ * 最新一楼的楼层记录是否已经过时：这个楼号上登记的是另一条消息，或者记录里在它之后还有楼层。
+ * 正常发送时这个楼号上还没有记录、之后也没有，不会命中；面板回滚（rollbackTo）会把记录截断到目标楼，同样不会命中。
+ */
+function hasStaleRecordAt(message_id: number, mk: string): boolean {
+  const selected: unknown = _.get(getEraData().meta, SEL_PATH);
+  if (!Array.isArray(selected)) return false;
+  const recorded = selected[message_id];
+  if (recorded && recorded !== mk) return true;
+  return selected.slice(message_id + 1).some(Boolean);
 }
 
 /**
@@ -239,6 +253,15 @@ export async function dispatchAndExecuteTask(job: EventJob, _mkToIgnore: any): P
         // 用户消息里的指令在之后的重算中会被执行；发送时就计算，首次结果才与从头重算一致
         if (is_user && countCommandBlocks(latestMessage) > 0) {
           logger.log('dispatchAndExecuteTask', '用户消息含有指令块，按同步处理');
+          payload.consecutiveProcessingCount = updateConsecutiveMkCount();
+          await handleSyncEvent(job, actionsTaken, payload);
+          break;
+        }
+        // 这个楼号上原来登记着另一条消息，或者记录比现在的聊天更长：有楼层被脚本删掉了却没有同步过
+        //（酒馆助手的 deleteChatMessages 不发删除事件）。只登记 MK 会把旧记录直接盖掉，
+        // 被删楼层的改动就再也回滚不了，所以改为按同步处理。
+        if (message_id !== null && hasStaleRecordAt(message_id, mk)) {
+          logger.log('dispatchAndExecuteTask', '楼层记录与聊天不一致，按同步处理');
           payload.consecutiveProcessingCount = updateConsecutiveMkCount();
           await handleSyncEvent(job, actionsTaken, payload);
           break;

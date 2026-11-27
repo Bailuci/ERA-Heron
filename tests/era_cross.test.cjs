@@ -716,3 +716,84 @@ test('setMessageText：钩子里调用被拒绝；楼层不存在或没有 MK �
   const reentry = env.load('core/reentry');
   assert.ok(reentry.GUARDED_ENTRIES.includes('Era.setMessageText'));
 });
+
+// ============================ 同层前端相关（2.0.4） ============================
+
+test('写入事件追加指令块时，正文里原有的 {{user}} / {{char}} 保持原样', async () => {
+  const c = create_chat();
+  const api = c.host.load_src('events/handlers/api/handler');
+  c.send('assistant', `你好 {{user}}，我是 {{char}}。${T('Insert', { hp: 1, 名: '{{user}}' })}`);
+  await c.sync();
+  await api.updateByObject({ hp: 2 });
+  await c.sync();
+  const text = c.chat[0].swipes[0];
+  assert.match(text, /^你好 \{\{user\}\}，我是 \{\{char\}\}。/);
+  assert.match(text, /"名":"\{\{user\}\}"/, '原有指令块里的宏也不被固定');
+  assert.match(text, /<VariableEdit>\s*\{\s*"hp": 2\s*\}\s*<\/VariableEdit>/);
+  assert.deepEqual(plain(c.stat()), { hp: 2, 名: 'User' });
+});
+
+test('钩子的 ctx.commands 带有来源：可以只限制正文指令，不影响界面的 Era.commit', async () => {
+  const env = await story({}, `你捡到钱。${T('Edit', { 金币: '+=500' })}`);
+  const seen = [];
+  env.host.hook_registry.addHook('before', '卡.限幅', ctx => {
+    seen.push(...ctx.commands.map(c => c.origin));
+    for (const command of ctx.commands) {
+      if (command.origin !== 'text' || command.type !== 'edit') continue;
+      for (const block of command.data) if (block.金币 === '+=500') block.金币 = '+=100';
+    }
+  });
+  await env.sync(true);
+  assert.equal(env.stat().金币, 110, '正文指令被限幅');
+  await env.commit([{ edit: { 金币: '+=500' } }]);
+  assert.equal(env.stat().金币, 610, '界面提交不受这个钩子影响');
+  assert.ok(seen.includes('text') && seen.includes('api'));
+});
+
+test('keepEraBlocks：改写玩家楼时保留 <era_plan>，放在消息密钥之前；新正文自带时不重复', async () => {
+  const env = create_env();
+  const { keepEraBlocks } = env.load('utils/message');
+  const plan = `<era_plan>\n<PlanSummary>命中</PlanSummary>\n${T('Edit', { hp: 1 })}\n</era_plan>`;
+  const data = '<era_data>{"era-message-key"="m1","era-message-type"="user"}</era_data>';
+  assert.equal(keepEraBlocks('改成防御', `攻击\n${plan}\n${data}`), `改成防御\n${plan}\n${data}`);
+  assert.equal(keepEraBlocks(`改成防御\n${data}`, `攻击\n${plan}\n${data}`), `改成防御\n${plan}\n${data}`);
+  const own = '<era_plan>\n<PlanSummary>新</PlanSummary>\n</era_plan>';
+  assert.equal(keepEraBlocks(`防御\n${own}`, `攻击\n${plan}\n${data}`), `防御\n${own}\n${data}`);
+  assert.equal(keepEraBlocks('x', 'y'), 'x');
+});
+
+test('describeIssue：被变量结构拦下的问题不重复写路径', async () => {
+  const env = create_env();
+  const { describeIssue } = env.load('core/crud/diagnostics');
+  assert.equal(describeIssue({ path: '主角.铜钱', reason: '主角.铜钱: 不能为负' }), '主角.铜钱: 不能为负');
+  assert.equal(describeIssue({ path: '主角.铜钱', reason: '路径不存在' }), '主角.铜钱: 路径不存在');
+  assert.equal(describeIssue({ path: '', reason: '没有指令' }), '没有指令');
+});
+
+test('Era.sync：可以等待的同步；脚本删楼后调用即回滚', async () => {
+  const env = await story({}, `你花了 3 金币。${T('Edit', { 金币: 7 })}`);
+  const Era = env.Era();
+  assert.equal(env.stat().金币, 7);
+  env.chat.pop(); // 脚本删楼，不发事件
+  assert.equal(await Era.sync(), true);
+  assert.equal(env.stat().金币, 10);
+  await assert.rejects(Era.sync('bad'), /mode 只能是/);
+  assert.ok(env.load('core/reentry').GUARDED_ENTRIES.includes('Era.sync'));
+});
+
+test('Era.extra.settings / planInjection / autoRun：同层前端用的开关、注入文字与按自动条件解析', async () => {
+  const env = await story();
+  const Era = env.Era();
+  assert.deepEqual(plain(Era.extra.settings()), { update: false, plan: false });
+  const { formatPlanInjection } = env.load('extra/plan');
+  const text = `攻击\n<era_plan>\n<PlanSummary>命中，伤害 4</PlanSummary>\n${T('Edit', { 金币: 9 })}\n</era_plan>`;
+  assert.equal(Era.extra.planInjection(text), formatPlanInjection('命中，伤害 4'));
+  assert.equal(Era.extra.planInjection('没有规划'), '');
+  assert.equal(Era.extra.planInjection(1), '', '按楼层号读玩家楼');
+  assert.throws(() => Era.extra.planInjection(99), /目标消息不存在/);
+  // 没有开启分步更新、玩家楼、楼层不存在
+  assert.equal(await Era.extra.autoRun(-1), null);
+  assert.equal(await Era.extra.autoRun(1), null);
+  await assert.rejects(Era.extra.autoRun(99), /目标消息不存在/);
+  for (const name of ['sync', 'extraAuto']) assert.ok(Era.features.includes(name), name);
+});

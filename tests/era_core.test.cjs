@@ -529,7 +529,7 @@ test('afterApply：钩子看到反转义、不含保留字段的数据；写入 
     {
       stat: { a: { 'k.1': 2 } },
       old_stat: { a: { 'k.1': 1 } },
-      commands: [{ type: 'edit', data: [{ a: { 'k.1': 2 } }] }],
+      commands: [{ type: 'edit', data: [{ a: { 'k.1': 2 } }], origin: 'text' }],
     },
   ]);
   assert.deepEqual(stat, { a: { $meta: { necessary: 'all' }, k__DOT__1: 2 }, $template: { t: 1 } });

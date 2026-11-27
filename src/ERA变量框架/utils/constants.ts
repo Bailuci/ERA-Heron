@@ -5,6 +5,7 @@
  *       2026-11-26 新增版本标识 ERA_FEATURES 与 ERAMetaData 的解析版本 / 写入版本标记、脚本设置“思考标签”“指令外层标签”、旁路写入的 origin 字段
  *       2026-11-27 ERA_FEATURES 补登记其他 1.7 分支的功能：keepMessageKey、entryFilter、ejs、checkSchema、schemaInvalid、issuesMacro、reentryGuard、slashCommands；更正 ERA_FEATURES 注释中检查所在的测试文件；版本号改为 2.0.0；ejs 注释更正为分步更新设置；错误负载类型补 source 字段；工具调用与自定义公式函数（tools、exprFns、era:toolResult）；登记 exprCall（表达式调用存成变量的公式）；版本号升级至 2.0.2
  *       2026-11-27 解析版本 3；ActionsTaken.apply 标为保留字段；版本号 2.0.3
+ *       2026-11-28 ERA_FEATURES 登记 sync、extraAuto；版本号 2.0.4
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -42,7 +43,7 @@
 import { z } from 'zod';
 
 /** ERA-Heron（基于 ERA 变量框架二次开发）的版本号。 */
-export const ERA_VERSION = '2.0.3';
+export const ERA_VERSION = '2.0.4';
 
 /**
  * 当前版本提供的功能，供角色卡用 `Era.features.includes(...)` 判断，参见 `Era.features`。
@@ -88,6 +89,9 @@ export const ERA_FEATURES: readonly string[] = [
   'commitKey',
   /** `Era.setMessageText`：改写一楼的正文并重新计算。 */
   'setMessageText',
+  /** `Era.sync`（可等待的同步）与 `Era.extra.autoRun` / `settings` / `planInjection`（自己建楼、自己调用生成的前端用）。 */
+  'sync',
+  'extraAuto',
   /** 表达式里的 `call(公式路径, 参数…)`：调用存成字符串变量的公式。 */
   'exprCall',
 ];

@@ -6,6 +6,7 @@
  *       2026-11-27 钩子、工具、公式函数统一判断；记下工具与公式函数的版本，新增或提高版本时完全重算；广播 era:toolResult
  *       2026-11-27 因未知工具或未知函数而失败的名字记进元数据（'missing'），换页面会话后注册时也完全重算一次
  *       2026-11-27 只对以前注册过的名字记 missing，AI 编造的名字不进元数据
+ *       2026-11-28 问题说明改用 describeIssue
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 'use strict';
@@ -54,6 +55,7 @@ import { Logger } from '../utils/log';
 import { isUserMessage } from '../utils/message';
 import { findFirstDirtyIndex } from './api_ops';
 import { foldOldLogs, getFoldedIndex, isFastSyncSafe, resolveRecalcStart, rollbackFoldedToInitial } from './compaction';
+import { describeIssue } from './crud/diagnostics';
 import { ApplyVarChangeForMessage } from './crud/patcher';
 import { getActiveHooks } from '../api/hook_registry';
 import {
@@ -184,7 +186,7 @@ const reportCommandErrors = (errors: CommandErrorPayload['errors'], lastMessageI
   const signature = JSON.stringify(latest);
   if (!settings.value.指令失败提示 || latest.length === 0 || signature === lastNotifiedCommandErrors) return;
   lastNotifiedCommandErrors = signature;
-  const lines = latest.slice(0, 3).map(error => `${error.path}: ${error.reason}`);
+  const lines = latest.slice(0, 3).map(describeIssue);
   if (latest.length > 3) lines.push(`……共 ${latest.length} 处`);
   toastr.warning(lines.map(line => _.escape(line)).join('<br>'), '[ERA] 部分变量指令没有生效', { escapeHtml: false });
 };

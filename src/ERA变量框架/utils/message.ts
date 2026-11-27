@@ -7,6 +7,7 @@
  *       <era_extra> 区段只认闭合、并且开头不在闭合的思考块里的块（findExtraRanges），正文的思考遮蔽、外层标签的例外与来源标记共用；去掉 <era_extra> 块时不跨过另一个 <era_extra>
  *       2026-11-27 工具调用 <EraFCall>：解析、计数、提取与剥离；keepEraBlocks（保留 ERA 写在正文里的块）
  *       2026-11-27 新增 getMessageAt（按楼层号取消息，越界返回 undefined）
+ *       2026-11-28 keepEraBlocks 同时保留玩家消息里的 <era_plan>
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -367,7 +368,7 @@ export function appendExtraBlock(body: string, blocks: string): string {
 }
 
 /**
- * 把原正文 `source` 里 ERA 写的块（`<era_data>` 与分步更新的 `<era_extra>`）补到新正文 `text` 末尾；
+ * 把原正文 `source` 里 ERA 写的块（`<era_data>`、分步更新的 `<era_extra>`、正文前规划的 `<era_plan>`）补到新正文 `text` 末尾；
  * 新正文里已经有的那一种不再补。`Era.keepMessageKey` 与 `Era.setMessageText` 共用。
  */
 export function keepEraBlocks(text: string, source: string): string {
@@ -375,6 +376,16 @@ export function keepEraBlocks(text: string, source: string): string {
   const extraRegex = new RegExp(EXTRA_BLOCK_PATTERN, 'gi');
   const hasData = ERA_DATA_REGEX.test(result);
   const hasExtra = new RegExp(EXTRA_BLOCK_PATTERN, 'i').test(result);
+  // 正文前规划写在玩家楼里的 <era_plan> 同样是 ERA 写的块：新正文没有带时补回，放在消息密钥之前
+  const planRegex = /<era_plan>(?:(?!<era_plan>)[\s\S])*?<\/era_plan>/gi;
+  if (!planRegex.test(result)) {
+    const plans = String(source ?? '').match(planRegex);
+    if (plans) {
+      const plan = plans[plans.length - 1];
+      const at = result.search(ERA_DATA_REGEX);
+      result = at === -1 ? `${result}\n${plan}` : `${result.slice(0, at).trimEnd()}\n${plan}\n${result.slice(at)}`;
+    }
+  }
   if (hasData && hasExtra) return result;
   const block = hasData ? undefined : String(source ?? '').match(ERA_DATA_REGEX)?.[0];
   if (block) result = `${result}\n${block}`;

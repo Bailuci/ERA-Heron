@@ -6,6 +6,7 @@
         旧楼只显示那一楼当时的变量、不监听 era:writeDone，长聊天里每次写入不再刷新全部旧楼（只影响新建的卡）；
         2026-11-27 去掉交流群信息
         2026-11-27 writeDone.actions 的注释：rollback / apply 是保留字段
+        2026-11-28 更正末尾关于 HTML 注释的说明
   原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
   注意：本文件原样写进“ERA 状态栏模板”正则的“替换为”，HTML 注释会保留在角色卡里（不显示），
         作者把它复制给 AI 修改时，AI 能看到文末的参考说明。
@@ -241,7 +242,7 @@
 
     <!--
     ================================================================
-    给 AI 的参考说明（HTML 注释，注入正则时会被删除，角色卡里看不到）
+    给 AI 的参考说明（HTML 注释，会随模板保留在角色卡的正则里，不会显示在聊天中）
 
     完整文档：https://github.com/Bailuci/ERA-Heron/blob/main/doc/03-状态栏.md
     接口文档：https://github.com/Bailuci/ERA-Heron/blob/main/doc/05-接口与设置.md

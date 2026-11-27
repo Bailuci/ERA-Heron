@@ -8,6 +8,7 @@
  *       2026-11-27 registerExprFn 的说明：不能注册名为 call 的函数
  *       2026-11-27 更正条目过滤器在主生成中的调用时机说明
  *       2026-11-27 setMessageText / keepMessageKey 的楼层号越界时报错（酒馆助手会把越界的楼层号夹到首尾楼）
+ *       2026-11-28 新增 Era.sync、Era.extra.autoRun / settings / planInjection
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -39,11 +40,11 @@ import { parseCharacterMacros } from '../utils/text';
 import { readMessageKey } from '../core/key/mk';
 import { getCurrentParseOptions } from '../core/version';
 import { EraAfterApplyContext, EraBeforeApplyContext, EraHookOptions, HookPhase } from '../core/hooks';
-import { getStatAfter, simulateText } from '../core/simulate';
+import { findMessageByMk, getStatAfter, simulateText } from '../core/simulate';
 import { detMath } from '../utils/det_math';
 import type { CommitDetail, CommitOperation, TextCommitDetail } from '../events/handlers/api/handler';
 import { createTicket, EraWriteResult } from '../events/handlers/api/tickets';
-import { pushToQueue } from '../events/queue';
+import { pushToQueue, waitForQueueIdle } from '../events/queue';
 import { rejectIfGuarded } from '../core/reentry';
 import { diagnoseStat } from '../core/schema_diag';
 import {
@@ -51,9 +52,12 @@ import {
   ExtraRunResult,
   ExtraStatusSnapshot,
   getExtraStatus,
+  getExtraSwitches,
+  planInjectionOf,
   planText,
   PlanRunResult,
   replanLatest,
+  runExtraAuto,
   runExtraManually,
   waitForJobs,
 } from '../extra/controller';
@@ -76,6 +80,9 @@ import { EraSnapshot, FloorRef, getVarsAt } from './vars_at';
 import type { CommandIssue } from '../core/crud/diagnostics';
 
 const logger = new Logger();
+
+/** `Era.sync` 最多等待的时间。 */
+const SYNC_WAIT_MS = 20000;
 
 /**
  * 注册失败是制卡时的错误用法，弹窗提示，让作者立即发现。
@@ -147,6 +154,21 @@ function copyOptions(options: unknown): Omit<CommitDetail, 'operations'> {
 }
 
 const FEATURES: readonly string[] = Object.freeze([...ERA_FEATURES]);
+
+/** 按楼层号、MK 或 `{ mk, message_id }` 找到当前聊天里的一楼；找不到时返回 `undefined`。 */
+function findFloor(where: FloorRef): any {
+  const mk = typeof where === 'string' ? where : _.isPlainObject(where) ? (where as any).mk : undefined;
+  if (mk) return findMessageByMk(mk) ?? undefined;
+  const id = typeof where === 'number' ? where : (where as any)?.message_id;
+  return Number.isInteger(id) ? getMessageAt(id) : undefined;
+}
+
+/** `Era.sync` 的实际执行：把一次同步排进队列，等队列处理完。 */
+async function syncNow(mode: 'auto' | 'latest' | 'full'): Promise<boolean> {
+  if (!['auto', 'latest', 'full'].includes(mode)) throw new Error("mode 只能是 'auto'、'latest' 或 'full'");
+  pushToQueue(ERA_API_EVENTS.FORCE_SYNC, { mode });
+  return waitForQueueIdle(SYNC_WAIT_MS);
+}
 
 /** `Era.setMessageText` 的实际写入：排进 ERA 队列，改写正文后随同步完成。 */
 async function setMessageTextNow(where: FloorRef, text: string): Promise<EraWriteResult> {
@@ -416,6 +438,16 @@ export const Era = {
    * @example
    * await setChatMessages([{ message_id: 0, message: Era.keepMessageKey(newText, 0) }]);
    */
+  /**
+   * 请求一次同步并等它完成，相当于可以等待的 `era:forceSync`。
+   * 脚本删楼、切换 swipe（酒馆助手的 `deleteChatMessages`、`setChatMessages` 默认不通知 ERA）之后调用，再读变量或建下一楼。
+   * @param mode `'auto'`（默认，按聊天记录的变化决定重算范围）、`'latest'`（只重算最新一楼）或 `'full'`（从第一楼完全重算）。
+   * @returns `true` 表示同步已经完成；`false` 表示到了时限还没有完成。
+   */
+  sync(mode: 'auto' | 'latest' | 'full' = 'auto'): Promise<boolean> {
+    return rejectIfGuarded('Era.sync') ?? syncNow(mode);
+  },
+
   keepMessageKey(text: string, from: string | number): string {
     if (typeof from !== 'number') return keepEraBlocks(text, String(from ?? ''));
     const msg = getMessageAt(from);
@@ -461,6 +493,31 @@ export const Era = {
      * 脚本、快速回复自己发送消息时用它；玩家点击发送时由“正文前规划”设置自动进行。
      */
     plan: (text: string): Promise<PlanRunResult> => rejectIfGuarded('Era.extra.plan') ?? planText(text),
+    /**
+     * 按自动触发的同样条件解析一楼：没有开启分步更新、是玩家消息、正文自己带有指令时不请求，返回 `null`。
+     * 自己建楼的前端在建好 AI 楼之后调用（脚本建的楼不会触发自动解析）；成功和无变化时不弹提示。
+     * @throws 找不到这一楼、这一楼还没有 MK 时 Promise 失败。
+     */
+    autoRun: (where: FloorRef): Promise<ExtraRunResult | null> =>
+      rejectIfGuarded('Era.extra.autoRun') ??
+      (async () => {
+        const msg = findFloor(where);
+        if (!msg) throw new Error('目标消息不存在');
+        return runExtraAuto(msg);
+      })(),
+    /** 分步更新（`update`）与正文前规划（`plan`）当前实际生效的开关。只读，不含接口地址和密钥。 */
+    settings: (): { update: boolean; plan: boolean } => getExtraSwitches(),
+    /**
+     * 玩家消息里的规划对应的注入文字，与原生发送时 ERA 注入给剧情模型的逐字相同；没有规划时返回空字符串。
+     * 自己调用 `generate()` 的前端用它把结算结果告诉剧情模型（`generate()` 不会自动注入）。
+     * @param from 玩家消息的正文，或它的楼层号（可以用负数从末尾倒数）。
+     */
+    planInjection: (from: string | number): string => {
+      if (typeof from !== 'number') return planInjectionOf(String(from ?? ''));
+      const msg = getMessageAt(from);
+      if (!msg) throw new Error('目标消息不存在');
+      return planInjectionOf(getRawMessageContent(msg));
+    },
     /** 重新规划最新一条玩家消息，替换其中的 `<era_plan>`（1.8 起）。出错时弹窗提示并返回 `null`。 */
     replan: (): Promise<PlanRunResult | null> => rejectIfGuarded('Era.extra.replan') ?? replanLatest(),
   },

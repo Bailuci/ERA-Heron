@@ -4,6 +4,7 @@
  * 目的：新增 <VariablePatch> 指令、宽松解析、只读字段与指令问题报告；修复复审中发现的问题
  *       2026-11-27 问题带上指令的来源标记 source（额外模型输出、旁路写入），只用于报告
  *       2026-11-27 新增 findProtectedInside（整体覆盖对象前检查其中受保护的内容）
+ *       2026-11-28 新增 describeIssue
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -66,6 +67,17 @@ export function findProtectedInside(node: any, checkReadonly: boolean): string |
     if (reason) return reason;
   }
   return null;
+}
+
+/**
+ * 把一条问题写成“路径: 原因”。被变量结构拦下的问题，原因本身就是“路径: 说明”，不再重复加路径。
+ */
+export function describeIssue(issue: { path: string; reason: string }): string {
+  const path = String(issue.path ?? '');
+  const reason = String(issue.reason ?? '');
+  return !path || reason === path || reason.startsWith(`${path}:`) || reason.startsWith(`${path}：`)
+    ? reason
+    : `${path}: ${reason}`;
 }
 
 export function isReadonlyKey(key: string): boolean {

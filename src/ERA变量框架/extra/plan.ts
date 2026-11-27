@@ -2,6 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。日期：2026-11-27。
  * 目的：正文前规划（路线图 1.8-3）
  *       2026-11-27 可选附上角色描述与用户人设（设置“附带角色信息”）
+ *       2026-11-28 问题说明改用 describeIssue
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -17,6 +18,7 @@
  */
 'use strict';
 
+import { describeIssue } from '../core/crud/diagnostics';
 import { simulateUserText } from '../core/simulate';
 import { parseEraMacros } from '../macro/parse';
 import { unescapeEraData } from '../utils/data';
@@ -164,7 +166,7 @@ async function checkOutput(
   if (problems.length === 0 && extracted.hasCommands) {
     // 按玩家消息的规则试算：玩家楼不执行钩子
     const result = await simulateUserText(extracted.text, stat);
-    problems.push(...result.problems.map(({ path, reason }) => `${path}: ${reason}`));
+    problems.push(...result.problems.map(describeIssue));
   }
   return { summary, blocks: extracted.hasCommands ? extracted.text : '', problems };
 }

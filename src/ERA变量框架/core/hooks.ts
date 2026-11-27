@@ -3,6 +3,7 @@
  * 日期：2026-11-25 至 2026-11-26
  * 目的：新增更新钩子 Era.onBeforeApply / Era.onAfterApply；修复第二批改动在审查中发现的问题；新增 <VariablePatch> 指令、宽松解析、只读字段与指令问题报告；修复第三批改动在审查中发现的问题；随机数抽到 utils 与表达式共用，ctx.math 提供确定性数学函数，保留 $expr 的稳定身份；钩子执行期间拒绝写入（重入保护，2026-11-26）
  *       2026-11-27 beforeApply 钩子保留指令的来源标记 source；指令可以是工具调用（type: 'call'）；保留正文指令的块序号
+ *       2026-11-28 钩子看到的指令带只读的 origin / source
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -41,6 +42,13 @@ export interface EraHookCommand {
   /** `call` 是工具调用 `<EraFCall>`，`data` 为 `[{ name, args }]`。 */
   type: 'insert' | 'edit' | 'delete' | 'patch' | 'call';
   data: any[];
+  /**
+   * 指令从哪里来（只读，改它没有效果）：`text` 正文里的指令，`api` 旁路写入（`Era.commit`、`Era.applyText`、写入事件），
+   * `hook` 钩子生成，`tool` 工具返回。钩子自己新建的指令不用写。
+   */
+  origin?: 'text' | 'api' | 'hook' | 'tool';
+  /** 更细的来源，只用于区分：`extra` 额外模型写进 `<era_extra>` 的指令，`api` 旁路写入。正文里的普通指令没有这一项。 */
+  source?: string;
 }
 
 export interface EraAfterApplyContext {
@@ -117,7 +125,12 @@ const BLOCK = Symbol('era-block');
 /** 钩子看到的指令。`patch` 与 `call` 的数据本来就没有转义。 */
 const isRaw = (type: string) => type === 'patch' || type === 'call';
 const toCommandView = (commands: EraCommand[]): EraHookCommand[] =>
-  commands.map(({ type, data }) => ({ type, data: toJson(isRaw(type) ? data : unescapeEraData(data)) }));
+  commands.map(({ type, data, origin, source }) => ({
+    type,
+    data: toJson(isRaw(type) ? data : unescapeEraData(data)),
+    origin: origin ?? 'text',
+    ...(source === undefined ? {} : { source }),
+  }));
 
 /**
  * 同步调用钩子；返回 thenable 视为错误。用鸭子类型判断，因为 Promise 可能来自另一个 iframe。

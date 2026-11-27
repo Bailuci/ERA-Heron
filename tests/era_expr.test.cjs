@@ -630,7 +630,7 @@ test('钩子：新建指令中的 $expr 用 `${mk}|expr|hook|${id}|序号` 取�
     ctx.stat.角度 = ctx.math.atan2(1, 1);
   });
   const r = await apply(host, { hp: 0, mp: 0.5 }, E({ mp: X('mp * 2') }));
-  assert.deepEqual(seen, [{ type: 'edit', data: [{ mp: { $expr: 'mp * 2' } }] }]);
+  assert.deepEqual(seen, [{ type: 'edit', data: [{ mp: { $expr: 'mp * 2' } }], origin: 'text' }]);
   assert.equal(r.stat.mp, 1);
   assert.equal(r.stat.hp, rollWith(random, 'mk1|expr|hook|卡.骰子|0|hp|0'));
   const det = host.load_src('utils/det_math');

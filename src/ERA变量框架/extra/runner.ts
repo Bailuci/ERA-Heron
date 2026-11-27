@@ -3,6 +3,7 @@
  * 日期：2026-11-25 至 2026-11-26
  * 目的：新增额外模型分步更新、等待式提交、试算与变量结构说明；修复第三批改动在审查中发现的问题；请求失败时退避重试，不重试鉴权、参数错误，换用备用接口；按实测的 generateRaw 错误（只有状态文字）识别鉴权和参数错误；先算目标楼状态再选择和渲染条目，新增 warnings
  *       2026-11-27 “已执行的更新”按当前聊天的解析方式取真正会执行的指令块，与 hasOwnCommands 和同步一致；额外模型输出按“思考标签”设置遮蔽
+ *       2026-11-28 问题说明改用 describeIssue
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -15,6 +16,7 @@
 
 import { createExtraSimulator, findMessageByMk, findSwipeByMk } from '../core/simulate';
 import { Logger } from '../utils/log';
+import { describeIssue } from '../core/crud/diagnostics';
 import { extractCommandBlocks, extractExecutedBlocks, getMessageContent, stripExtraBlock } from '../utils/message';
 import { ExtraConfig } from './config';
 import { buildExtraPrompts, collectExtraEntries, EJS_RENDER_BUDGET_MS, getGroups } from './prompt';
@@ -160,7 +162,7 @@ async function runGroup(
       problems = [];
       if (extracted.truncated) problems.push('有指令块没有闭合，输出可能被截断');
       if (extracted.hasCommands) {
-        problems.push(...(await check(extracted.text)).map(({ path, reason }) => `${path}: ${reason}`));
+        problems.push(...(await check(extracted.text)).map(describeIssue));
         if (!best || problems.length < best.problems.length) best = { blocks: extracted.text, problems };
         if (problems.length === 0) return best;
       } else if (!extracted.truncated) {

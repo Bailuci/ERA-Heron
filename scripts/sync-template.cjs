@@ -71,7 +71,7 @@ const RULES = [
     files: [SKILL_SOURCE],
     required: true,
     final: true,
-    from: '把 `开发工具/era.ts` 复制到与模板的 `mvu.ts` 同一目录、`开发工具/exported.era.d.ts` 复制到与 `exported.mvu.d.ts` 同一类型目录，然后 `import',
+    from: '把 `开发工具/era.ts` 复制到与模板的 `mvu.ts` 同一目录、`开发工具/exported.era.d.ts` 复制到项目根目录（不要放进 `@types/`，模板的依赖升级会清空它），然后 `import',
     to: '本母版已内置 `util/era.ts` 与根目录的 `exported.era.d.ts`（不要移进 `@types/`，`bump_deps` 会清空它），直接 `import',
   },
   {
@@ -113,7 +113,7 @@ const RULES = [
       '| 文件 | 放到哪里 | 内容 |\n' +
       '| --- | --- | --- |\n' +
       "| [`era.ts`](../开发工具/era.ts) | 与模板的 `mvu.ts` 同一目录（`@util` 别名指向的目录），之后可以 `import { defineEraDataStore } from '@util/era'` | 下表的函数 |\n" +
-      '| [`exported.era.d.ts`](../开发工具/exported.era.d.ts) | 与 `exported.mvu.d.ts` 同一类型目录（如 `@types/iframe/`） | 全局 `Era` 和 `era:*` 事件的类型声明 |\n',
+      '| [`exported.era.d.ts`](../开发工具/exported.era.d.ts) | 项目根目录（不要放进 `@types/`，酒馆助手模板的依赖升级会清空它） | 全局 `Era` 和 `era:*` 事件的类型声明 |\n',
     to:
       '| 文件 | 位置 | 内容 |\n' +
       '| --- | --- | --- |\n' +
