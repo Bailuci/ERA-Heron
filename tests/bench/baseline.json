@@ -1,0 +1,41 @@
+{
+  "node": "v22.23.5",
+  "platform": "win32-x64",
+  "scenarios": {
+    "calibration": {
+      "desc": "固定纯 JS 负载（JSON 往返与深拷贝），用来换算相对耗时",
+      "ms": 40.4,
+      "relative": 1
+    },
+    "full_resync_long_chat": {
+      "desc": "长聊天完全重算：400 楼（200 楼 AI），每楼改 5 个角色、追加日志",
+      "ms": 160.8,
+      "relative": 4.11
+    },
+    "append_one_floor": {
+      "desc": "长聊天末尾追加一楼后的普通同步（每轮对话的常态开销）",
+      "ms": 13.3,
+      "relative": 0.31
+    },
+    "big_insert": {
+      "desc": "大对象 Insert：一次插入约 1.2 万个叶子的对象",
+      "ms": 87.9,
+      "relative": 1.12
+    },
+    "api_ops_150_rounds": {
+      "desc": "单楼 ApiOps 150 回合：同一楼连续 150 次旁路写入，每次写入后同步",
+      "ms": 5921.6,
+      "relative": 69.72
+    },
+    "full_resync_schema_hooks": {
+      "desc": "带 schema 和钩子的完全重算：120 楼（60 楼 AI）",
+      "ms": 4405.4,
+      "relative": 50.14
+    }
+  },
+  "bundle": {
+    "bytes": 313410,
+    "gzip": 95789
+  },
+  "updated": "2026-11-26"
+}
