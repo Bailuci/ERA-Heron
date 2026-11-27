@@ -2,7 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-26
  * 目的：重新设计面板：变量树（懒渲染、搜索、节点编辑）
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 import type { InjectionKey, Ref } from 'vue';
 import type { ValueKind } from '../workbench';

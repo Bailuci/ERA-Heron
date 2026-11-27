@@ -5,7 +5,7 @@
  *       {{ERA-issues}} 只报告主模型的指令、/era-issues 与宏共用报告、keepMessageKey 保留 <era_extra>、分步更新提示词去掉占位符、
  *       Era.features 登记、条目过滤器的重入保护、atomic 预检与写入的压缩一致、“ERA 表达式规则”是内置更新条目、seedMk 的含义；
  *       <era_extra> 区段只认闭合、不在闭合思考块里的块（思考里提到这个标签时草稿仍遮蔽、{{ERA-issues}} 不变）
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 // 运行方式: node --test tests/era_cross.test.cjs
 const test = require('node:test');

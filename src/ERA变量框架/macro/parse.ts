@@ -3,7 +3,7 @@
  * 日期：2026-11-25 至 2026-11-26
  * 目的：新增额外模型分步更新、等待式提交、试算与变量结构说明；导出按字面键名查找的函数，供 /era-get 命令使用；新增 {{ERA-issues}}（2026-11-26）
  *       2026-11-27 分步更新的提示词里 {{ERA-issues}} 展开为空（它是主模型上一条回复的问题，与更新模型无关）；新增 {{ERA-tools}}、{{ERA-exprFns}}、{{ERA-toolResults}}
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file ERA 变量框架 - 宏解析

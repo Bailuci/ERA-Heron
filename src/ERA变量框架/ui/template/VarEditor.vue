@@ -2,7 +2,7 @@
   修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
   日期：2026-11-26
   目的：重新设计面板：变量节点的内联编辑器（修改、新增）
-  原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+  原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
 -->
 <template>
   <form v-if="editor" class="ve" :style="{ marginLeft: `${level * 16 + 4}px` }" @submit.prevent="ctx.submit()">

@@ -2,7 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-26
  * 目的：版本标识：解析版本（新聊天才遮蔽思考块、启用指令外层标签）、写入版本、角色卡变量“ERA最低版本”的检查
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file ERA 变量框架 - 版本标识

@@ -3,7 +3,7 @@
  * 日期：2026-11-25 至 2026-11-26
  * 目的：新增可选的变量结构 schema 校验与全局接口 Era；修复 update 日志记录过期旧值导致的回滚错误；删除无人调用的 calculateStatForward；批量快照可从指定起始状态开始
  * 2026-11-27：导出 applyRollback，供存档日志压缩自检
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file ERA 变量框架 - 状态时间旅行模块

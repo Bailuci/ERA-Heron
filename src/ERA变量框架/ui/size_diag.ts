@@ -2,7 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-26
  * 目的：长聊天诊断：统计聊天数据体积（stat_data、EditLogs、ApiOps、正文）与当前挂载的状态栏 iframe 数
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file ERA 面板 - 聊天数据体积诊断

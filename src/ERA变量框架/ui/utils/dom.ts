@@ -2,7 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 修改。
  * 日期：2026-11-26
  * 目的：重新设计面板：挂载点不再自带定位与层级，由面板根元素决定
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 export function createMountPoint(): JQuery<HTMLDivElement> {
   // 先移除上一次加载残留的挂载点

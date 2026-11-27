@@ -2,7 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。日期：2026-11-27。
  * 目的：正文前规划（路线图 1.8-3）
  *       2026-11-27 可选附上角色描述与用户人设（设置“附带角色信息”）
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file ERA 变量框架 - 正文前规划

@@ -2,7 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-25 至 2026-11-26
  * 目的：VariableEdit 支持 +=、-=、*=、/= 增量运算；增量运算：不舍入大整数，不把编号类字符串当数字；新增脚本设置“API写入不修改消息”；表达式 $expr 共用 toOperand
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file ERA 变量框架 - 增量运算解析模块

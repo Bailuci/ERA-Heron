@@ -3,7 +3,7 @@
  * 日期：2026-11-26
  * 目的：新增斜杠命令 /era-get（按路径读取去转义、去 $meta 的变量 JSON）与 /era-issues（最新 AI 楼没有生效的指令与原因），供 STscript、快速回复与冒烟测试使用
  *       2026-11-27 /era-issues 与 {{ERA-issues}} 共用最新 AI 楼的报告；新增 format=model，输出与 {{ERA-issues}} 相同的给主模型的文字
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 import { collectLatestIssues, describeLatestIssuesForModel, formatIssues, readEraValue } from '../core/issues';
 import { waitForQueueIdle } from '../events/queue';

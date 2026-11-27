@@ -2,7 +2,7 @@
   修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
   日期：2026-11-26
   目的：重新设计面板：变量编辑工作台（搜索；节点上修改、新增、删除；粘贴完整 JSON 计算差异；提交前试算，统一以原子提交写入）；提交前的试算改用楼内试算器，与原子提交的检查一致（2026-11-26）
-  原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+  原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
 -->
 <template>
   <div class="vtab">

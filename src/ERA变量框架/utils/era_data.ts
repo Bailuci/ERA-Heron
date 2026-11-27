@@ -3,7 +3,7 @@
  * 日期：2026-11-26
  * 目的：脚本设置逐字段容错、保存前校验；新增 stat 与元数据一次写入的 updateEraData；
  *       新聊天第一次写入元数据时记下解析版本与写入版本；保存脚本设置时保留不认识的设置项（新版本增加的）
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file ERA 变量框架 - ERA 核心变量读写模块

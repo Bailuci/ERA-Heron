@@ -2,7 +2,7 @@
   修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增（取代 SnapshotManager.vue）。
   日期：2026-11-26
   目的：重新设计面板：历史快照页；只列最近的楼层，更早的按消息 ID 查询；查询失败时显示原因；可从快照回滚
-  原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+  原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
 -->
 <template>
   <div class="stab">

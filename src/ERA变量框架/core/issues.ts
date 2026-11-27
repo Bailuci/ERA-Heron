@@ -3,7 +3,7 @@
  * 日期：2026-11-26 至 2026-11-27
  * 目的：读取最新 AI 楼没有生效的指令与原因（供 /era-issues 命令），按路径读取去掉 $meta 的变量（供 /era-get 命令）
  *       2026-11-27 与 {{ERA-issues}} 统一数据源：先读同步时记下的最新 AI 楼报告（core/latest_report.ts），没有报告时再从上一楼的状态重算；可输出给主模型的格式
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file ERA 变量框架 - 指令问题与变量读取

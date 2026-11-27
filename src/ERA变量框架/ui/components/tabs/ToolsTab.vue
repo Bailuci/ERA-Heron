@@ -2,7 +2,7 @@
   修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增（取代 RightRailContent/ActionButtons.vue）。
   日期：2026-11-26
   目的：重新设计面板：维护工具（完全重算、重算最后一楼、回滚、快速初始化、更新旧卡的规则），显示进行中与完成/失败反馈，危险操作两步确认
-  原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+  原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
 -->
 <template>
   <div class="ttab">

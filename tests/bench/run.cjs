@@ -2,7 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-26 至 2026-11-27
  * 目的：性能基准（路线图 1.7-11）：在 Node 中直接运行真实源码，固定几个场景并与提交进仓库的基线比较；同时记录 artifact/bundle.js 体积
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 // 性能基准。运行方式:
 //   pnpm bench              运行并与 tests/bench/baseline.json 比较，只打印警告，不以失败退出

@@ -3,7 +3,7 @@
  * 日期：2026-11-25 至 2026-11-27
  * 目的：新增 <VariablePatch> 指令、宽松解析、只读字段与指令问题报告；新增额外模型分步更新、等待式提交、试算与变量结构说明；修复第三批改动在审查中发现的问题；发给 AI 的提示词在监听器内直接替换宏，不再依赖事件队列的回调；宏的判断不区分大小写、允许空格；从发给 AI 的提示词中去掉状态栏占位符（没有更新规则的旧卡缺少对应的隐藏正则）
  *       2026-11-27 占位符的剥离抽成对单段文本的 stripStatusPlaceholderText（macro/placeholder.ts），与分步更新的提示词共用；旧卡的提示词同样去掉 <era_plan>
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 import { isQueueIdle, waitForQueueIdle } from '../events/queue';
 import { ERA_EVENT_EMITTER, type WriteDonePayload } from '../utils/constants';

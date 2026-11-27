@@ -3,7 +3,7 @@
  * 日期：2026-11-26 至 2026-11-27
  * 目的：测试母版同步脚本（scripts/sync-template.cjs）：生成结果没有本仓库专有路径、母版改写规则全部匹配、默认不写入
  *       2026-11-27 同步可选条目“ERA 表达式规则”的原文
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 // 运行方式: node --test tests/era_sync_template.test.cjs
 const assert = require('node:assert/strict');
@@ -78,7 +78,7 @@ test('专有路径检查：能发现漏改的路径，放过 URL、指向网址�
       'import "https://cdn.jsdelivr.net/gh/Bailuci/ERA-Heron@v1.6.0/artifact/bundle.js"',
       // 相对写法
       '[源码](../src/ERA变量框架/index.ts)、[测试](../tests/a.cjs)、[工具](../开发工具/foo.ts)',
-      '[文档](./doc/x.md)、[约定](../AGENTS.md)、[记录](../修改记录.md)',
+      '[文档](./doc/x.md)、[约定](../AGENTS.md)、[记录](../更新日志.md)',
       // 同一行后面有网址链接时，前面的路径仍要查出来
       '见 doc/05.md，另见 [说明](https://example.com/a)',
       // 规则顺序出错时的重复前缀；母版自己的 ../../README.md 不算
@@ -99,7 +99,7 @@ test('专有路径检查：能发现漏改的路径，放过 URL、指向网址�
       [7, '开发工具/'],
       [8, 'doc/'],
       [8, '../AGENTS.md'],
-      [8, '../修改记录.md'],
+      [8, '../更新日志.md'],
       [9, 'doc/'],
       [10, 'docs/era/.agents/'],
       [10, 'docs/era/docs/'],

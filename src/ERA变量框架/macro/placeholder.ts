@@ -3,7 +3,7 @@
  * 日期：2026-11-26 至 2026-11-27
  * 目的：追加占位符时保留正文中的宏
  *       2026-11-27 从单段 AI 消息中去掉状态栏占位符的 stripStatusPlaceholderText（原在 macro/parser.ts，主生成与分步更新的提示词共用）
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 'use strict';
 

@@ -2,7 +2,7 @@
   修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 修改。
   日期：2026-11-26
   目的：重新设计面板：主题改为跟随酒馆配色（也可选亮色、暗色），变量只作用于面板内部，不再写到页面的 :root
-  原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+  原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
 -->
 <template>
   <span class="era-theme-anchor" hidden></span>

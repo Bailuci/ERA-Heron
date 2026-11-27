@@ -3,7 +3,7 @@
  * 日期：2026-11-26
  * 目的：新增表达式 $expr 的测试：求值器、写入与回滚、随机数种子规则、旁路写入的稳定身份、钩子与试算
  *       2026-11-27 “ERA 表达式规则”条目新增 call 的示例
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 // 表达式 $expr（core/crud/expr.ts 及其接入）的测试。运行方式: node --test tests/era_expr.test.cjs
 const assert = require('node:assert/strict');

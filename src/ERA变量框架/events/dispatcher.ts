@@ -2,7 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 修改。
  * 日期：2026-11-25 至 2026-11-26
  * 目的：API 写入与 forceSync 在事件队列中等待完成；修复第三批改动在审查中发现的问题；不再为调试日志在每个任务前读取整段聊天；用户消息含指令时发送后立即计算
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 'use strict';
 

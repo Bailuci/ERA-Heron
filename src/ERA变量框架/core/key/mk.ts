@@ -2,7 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 修改。
  * 日期：2026-11-25 至 2026-11-26
  * 目的：修复“复制消息”产生重复 MK 导致的状态错误；新增脚本设置“API写入不修改消息”；修复第二批改动在审查中发现的问题；修复第三批改动在审查中发现的问题等；注入 MK 时保留正文中的宏
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file ERA 变量框架 - 消息密钥 (MK) 管理模块

@@ -6,7 +6,7 @@
  *       2026-11-27 主生成的条目过滤器只在真正的主生成期间运行和等待；强制纳入时关闭概率，不改写带粘性或冷却的条目；输入框有文字时不回退读取最新玩家楼的规划摘要
  *       2026-11-27 请求加上头部提示词、酒馆预设与流式请求（见 request.ts）；status().history 保留最近几次分步更新与规划的请求记录
  *       2026-11-27 主生成标记不再因斜杠命令等提前返回而卡住（还要求酒馆正处于生成中）；规划摘要只在与 GENERATION_STARTED 配对的 AFTER_COMMANDS 注入；带 ID 的停止不撤注入；切换聊天后旧聊天的结果不再写进新聊天
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file ERA 变量框架 - 额外模型的触发与中止

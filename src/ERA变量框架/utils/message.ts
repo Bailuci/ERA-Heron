@@ -6,7 +6,7 @@
  *       2026-11-27 正文与额外模型输出的拼接抽成 appendExtraBlock，写入与试算共用；<era_extra> 不受正文思考遮蔽的影响；额外模型输出的提取按“思考标签”设置遮蔽；新增按解析方式取出会执行的指令块（extractExecutedBlocks）；指令带上来源标记 source（<era_extra>、ApiOps），只用于报告；
  *       <era_extra> 区段只认闭合、并且开头不在闭合的思考块里的块（findExtraRanges），正文的思考遮蔽、外层标签的例外与来源标记共用；去掉 <era_extra> 块时不跨过另一个 <era_extra>
  *       2026-11-27 工具调用 <EraFCall>：解析、计数、提取与剥离；keepEraBlocks（保留 ERA 写在正文里的块）
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file ERA 变量框架 - 消息处理模块

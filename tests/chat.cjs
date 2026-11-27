@@ -4,7 +4,7 @@
  * 目的：新增脚本设置“API写入不修改消息”；修复第三批改动在审查中发现的问题；可替换外部模块，统计聊天变量的写入次数；；可取得重放用的宿主（2026-11-26）
  *       2026-11-26 从头重放时沿用原聊天的解析版本；legacy 选项模拟 1.6 建立的旧聊天
  *       2026-11-27 tools、expr_fns 选项注册工具与公式函数（重放的宿主同样注册）；假的酒馆文件接口（折叠日志存档）移到这里
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 // 一个只有内存状态的假聊天，用来驱动真实的同步流程。
 const _ = require('lodash');

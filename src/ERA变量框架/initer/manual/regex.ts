@@ -2,7 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 修改。
  * 日期：2026-11-26
  * 目的：快速初始化增加“ERA 状态栏占位符隐藏正则”
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 import { ensureCharacterRegex } from '../../utils/regex';
 import { HIDE_ERA_DATA_REGEX } from './regex_objects/hide_era_data';

@@ -3,7 +3,7 @@
  * 日期：2026-11-26
  * 目的：重新设计面板：关闭悬浮球时仍可从酒馆扩展菜单、/era 命令或脚本按钮打开面板；记录指令与 schema 问题、分步更新进度，显示在悬浮球上；注册 /era-get、/era-issues 命令；变量不符合结构时提示，点此诊断（2026-11-26）
  *       2026-11-27 切换聊天时通知面板刷新请求记录与角色卡推荐
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 import { createPinia } from 'pinia';
 import { App as VueApp, createApp } from 'vue';

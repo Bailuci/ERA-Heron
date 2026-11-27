@@ -3,7 +3,7 @@
  * 日期：2026-11-25 至 2026-11-26
  * 目的：新增更新钩子 Era.onBeforeApply / Era.onAfterApply；修复第二批改动在审查中发现的问题；新增 <VariablePatch> 指令、宽松解析、只读字段与指令问题报告；修复第三批改动在审查中发现的问题；随机数抽到 utils 与表达式共用，ctx.math 提供确定性数学函数，保留 $expr 的稳定身份；钩子执行期间拒绝写入（重入保护，2026-11-26）
  *       2026-11-27 beforeApply 钩子保留指令的来源标记 source；指令可以是工具调用（type: 'call'）；保留正文指令的块序号
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file ERA 变量框架 - 更新钩子执行模块

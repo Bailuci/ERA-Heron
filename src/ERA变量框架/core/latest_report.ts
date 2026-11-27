@@ -4,7 +4,7 @@
  * 目的：最新 AI 楼的报告：{{ERA-issues}} 把未生效的指令告诉主模型；同步后校验最新状态并广播 era:schemaInvalid
  *       2026-11-27 记录工具调用结果，供 {{ERA-toolResults}}；工具调用的问题同样告诉主模型
  *       2026-11-27 {{ERA-issues}} 只报告主模型写在正文里的指令：排除 <era_extra> 中额外模型的输出与 ApiOps 中的旁路写入（含 Era.applyText）
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file ERA 变量框架 - 最新 AI 楼的报告

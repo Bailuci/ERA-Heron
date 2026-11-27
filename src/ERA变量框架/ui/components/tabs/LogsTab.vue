@@ -2,7 +2,7 @@
   修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
   日期：2026-11-26
   目的：重新设计面板：日志页（最近的问题、最新一楼的操作、按楼分页查看全部日志），不再一次渲染整个聊天的日志；问题可以跳转到对应页面（2026-11-26）
-  原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+  原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
 -->
 <template>
   <div class="ltab">

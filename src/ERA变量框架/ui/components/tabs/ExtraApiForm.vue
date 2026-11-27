@@ -2,7 +2,7 @@
   修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
   日期：2026-11-25 至 2026-11-26
   目的：面板：分步更新设置、重新解析、更新旧卡规则；重新设计面板（统一样式，移到分步更新页）；默认推荐跟随酒馆或代理预设，自定义接口时提示密钥风险
-  原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+  原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
 -->
 <template>
   <fieldset class="xapi">

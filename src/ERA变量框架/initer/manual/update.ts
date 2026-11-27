@@ -2,7 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-25 至 2026-11-26
  * 目的：面板：分步更新设置、重新解析、更新旧卡规则；补充文档与规则；修复第三批改动在审查中发现的问题；代码格式整理；更新旧卡时补上缺少的隐藏正则、升级未改动过的旧版意图说明条目、如实报告找不到规则条目或变量宏的情况
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file 手动初始化模块 - 更新旧卡

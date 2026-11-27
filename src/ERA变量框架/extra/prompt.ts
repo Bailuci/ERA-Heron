@@ -5,7 +5,7 @@
  *       2026-11-27 注册了工具或公式函数时，提示词附上说明并允许 <EraFCall>
  *       2026-11-27 可选条目“ERA 表达式规则”视为内置的更新条目；聊天记录去掉旧卡的状态栏占位符；{{ERA-issues}} 展开为空
  *       2026-11-27 可选附上角色描述与用户人设（设置“附带角色信息”）
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file ERA 变量框架 - 额外模型的提示词

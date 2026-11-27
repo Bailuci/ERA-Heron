@@ -2,7 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 修改。
  * 日期：2026-11-25 至 2026-11-26
  * 目的：新增 <VariablePatch> 指令、宽松解析、只读字段与指令问题报告；显式写出 source.reasoning: false 与 trim_strings: []（与缺省行为相同）
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @constant {Omit<TavernRegex, 'id' | 'scope'>} HIDE_ERA_METADATA_REGEX

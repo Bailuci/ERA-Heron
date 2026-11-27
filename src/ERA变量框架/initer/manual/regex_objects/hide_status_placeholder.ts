@@ -2,7 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-26
  * 目的：状态栏占位符只用于显示，从发给 AI 的提示词中去掉，避免每条历史 AI 消息都带着它、AI 模仿输出
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @constant {Omit<TavernRegex, 'id' | 'scope'>} HIDE_STATUS_PLACEHOLDER_REGEX

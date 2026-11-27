@@ -3,7 +3,7 @@
  * 日期：2026-11-26 至 2026-11-27
  * 目的：母版同步脚本（pnpm sync-template）：把文档、前端工具、类型声明、规则条目与制卡流程复制到 tavern_era_template，并按映射表改写路径
  *       2026-11-27 制卡流程已补上第 5 条正则，删除对应的临时规则；同步可选条目“ERA 表达式规则”的原文
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 // 用法:
 //   pnpm sync-template                    只打印差异（dry-run），不写入
@@ -144,7 +144,7 @@ const RULES = [
 const FORBIDDEN = [
   /(?<![\w-])(?<!ERA-Heron 的 `)(?:doc\/|开发工具\/?|src\/ERA变量框架|artifact\/bundle\.js|tests\/)/g,
   // 指向本仓库根目录文件的相对链接（母版里同名文件的内容不同）
-  /(?<![\w./])\.\.\/(?:README|AGENTS|CLAUDE|修改记录)\.md/g,
+  /(?<![\w./])\.\.\/(?:README|AGENTS|CLAUDE|更新日志)\.md/g,
   // 规则顺序出错时会出现的重复前缀
   /docs\/era\/(?:docs\/|\.agents\/|util\/|exported\.era|初始模板\/)/g,
 ];

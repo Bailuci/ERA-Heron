@@ -4,7 +4,7 @@
  * 目的：钩子与工具的重入保护：执行期间拒绝所有写入入口，避免“提交 → 重算 → 钩子再提交”的无限循环
  *       合并时把 Era.applyText 纳入保护
  *       2026-11-27 说明条目过滤器（Era.registerEntryFilter）同样在保护下调用
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file ERA 变量框架 - 重入保护

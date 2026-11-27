@@ -2,7 +2,7 @@
   修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 修改。
   日期：2026-11-26
   目的：重新设计面板：悬浮球与面板分离，面板关闭时不渲染；主题跟随酒馆；Esc 关闭面板
-  原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+  原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
 -->
 <template>
   <div class="era-root" :data-theme="store.theme" :class="{ 'era-root--mobile': isMobile }">

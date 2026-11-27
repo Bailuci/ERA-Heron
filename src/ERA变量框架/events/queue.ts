@@ -2,7 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 修改。
  * 日期：2026-11-25 至 2026-11-26
  * 目的：新增额外模型分步更新、等待式提交、试算与变量结构说明；处理中途抛错时释放锁，单个任务失败不再让队列永久停止；新增等待队列空闲的接口；钩子执行期间发出的写入事件不入队（重入保护）
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file ERA 变量框架 - 事件队列与总调度模块

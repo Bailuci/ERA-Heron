@@ -3,7 +3,7 @@
  * 日期：2026-11-26 至 2026-11-27
  * 目的：新增条目过滤器 Era.registerEntryFilter：分步更新按目标楼的状态选择和改写世界书条目
  *       2026-11-27 过滤器在重入保护下调用：执行期间调用写入接口（Era.commit、Era.extra.run 等）时忽略它的结果并记入 warnings
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file ERA 变量框架 - 条目过滤器注册表

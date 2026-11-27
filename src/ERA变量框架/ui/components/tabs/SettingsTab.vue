@@ -4,7 +4,7 @@
   目的：重新设计面板：设置页（面板外观与悬浮球；脚本设置分组显示、带说明；保存前逐项校验，数字框清空时拒绝保存，保存后重新读取校验后的值）；
         2026-11-26 新增“思考标签”“指令外层标签”的说明
         2026-11-27 说明里不再写“1.7 起”，改为“只对新建的聊天生效”
-  原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+  原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
 -->
 <template>
   <div class="gtab">

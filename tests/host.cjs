@@ -2,7 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-25 至 2026-11-26
  * 目的：测试：拆出测试宿主，新增同步层随机对拍测试；新增脚本设置“日志保留楼层数”；新增更新钩子 Era.onBeforeApply / Era.onAfterApply；同步过程中切换聊天时放弃本次结果等；可替换外部模块（如 opencc-js）；可以卡住事件队列（hold_queue）
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 // 测试宿主：在独立的 vm 上下文中直接加载真实的 TypeScript 源码，不依赖构建产物或真实酒馆。
 const fs = require('node:fs');

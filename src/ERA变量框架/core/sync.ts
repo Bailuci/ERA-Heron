@@ -6,7 +6,7 @@
  *       2026-11-27 钩子、工具、公式函数统一判断；记下工具与公式函数的版本，新增或提高版本时完全重算；广播 era:toolResult
  *       2026-11-27 因未知工具或未知函数而失败的名字记进元数据（'missing'），换页面会话后注册时也完全重算一次
  *       2026-11-27 只对以前注册过的名字记 missing，AI 编造的名字不进元数据
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 'use strict';
 

@@ -1,8 +1,8 @@
 <!--
   修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增（取代 RightRailContent/AboutEra.vue）。
-  日期：2026-11-26
-  目的：重新设计面板：关于页（名称与版本、作者与原作者、许可说明、文档入口、面板入口说明）；调整项目介绍与作者说法
-  原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+  日期：2026-11-26 至 2026-11-27
+  目的：重新设计面板：关于页（名称与版本、作者与原作者、许可说明、文档入口、面板入口说明）；调整项目介绍与作者说法；2026-11-27 去掉交流群信息；文档入口补上 08 动态提示词
+  原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
 -->
 <template>
   <div class="atab">
@@ -37,10 +37,6 @@
             ·
             <a :href="ORIGINAL_POST" target="_blank" rel="noopener noreferrer">原版介绍帖（Discord）</a>
           </dd>
-        </div>
-        <div>
-          <dt>交流群</dt>
-          <dd>ERA 框架交流群 1006127516</dd>
         </div>
       </dl>
     </section>
@@ -119,6 +115,7 @@ const DOCS = [
   { file: '05-接口与设置.md', title: '05 接口与设置', desc: 'Era 全局接口、事件与脚本设置' },
   { file: '06-分步更新.md', title: '06 分步更新', desc: '用额外模型更新变量' },
   { file: '07-常见问题与排错.md', title: '07 常见问题与排错', desc: '变量不更新、宏没替换、找不到面板' },
+  { file: '08-动态提示词.md', title: '08 动态提示词', desc: 'EJS、条目过滤器与按变量切换提示词' },
 ];
 const docUrl = (file: string) => `${ERA_REPOSITORY}/blob/main/doc/${encodeURIComponent(file)}`;
 

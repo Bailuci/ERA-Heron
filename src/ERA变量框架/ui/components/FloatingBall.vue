@@ -2,7 +2,7 @@
   修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 修改。
   日期：2026-11-26
   目的：重新设计悬浮球：可拖动（鼠标与触摸）、松手吸附屏幕边缘、位置按设备保存、可隐藏；显示进行中、分步更新与错误状态
-  原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+  原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
 -->
 <template>
   <div

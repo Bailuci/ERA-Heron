@@ -2,7 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。日期：2026-11-27。
  * 目的：分步更新与正文前规划的请求加上头部提示词、酒馆预设（提示词条目与采样参数）和流式请求
  *       2026-11-27 注释写明预设条目按“聊天记录”分在 ERA 提示词前后
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file ERA 变量框架 - 发给更新模型、规划模型的请求

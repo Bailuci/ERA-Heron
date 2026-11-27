@@ -1,10 +1,10 @@
 /*
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 修改。
- * 日期：2026-11-25 至 2026-11-26
+ * 日期：2026-11-25 至 2026-11-27
  * 目的：新增脚本设置“数组内保留对象”；新增可选的变量结构 schema 校验与全局接口 Era；新增脚本设置“清理失效日志”；新增脚本设置“日志保留楼层数”；显示 ERA-Heron 版本号；脚本设置逐字段容错并提供严格校验；调整项目介绍与作者说法；era:extraStatus 的负载增加 warnings；新增事件 era:schemaInvalid（变量结构诊断）
  *       2026-11-26 新增版本标识 ERA_FEATURES 与 ERAMetaData 的解析版本 / 写入版本标记、脚本设置“思考标签”“指令外层标签”、旁路写入的 origin 字段
- *       2026-11-27 ERA_FEATURES 补登记其他 1.7 分支的功能：keepMessageKey、entryFilter、ejs、checkSchema、schemaInvalid、issuesMacro、reentryGuard、slashCommands；更正 ERA_FEATURES 注释中检查所在的测试文件；版本号改为 2.0.0；ejs 注释更正为分步更新设置；错误负载类型补 source 字段；工具调用与自定义公式函数（tools、exprFns、era:toolResult）；登记 exprCall（表达式调用存成变量的公式）
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ *       2026-11-27 ERA_FEATURES 补登记其他 1.7 分支的功能：keepMessageKey、entryFilter、ejs、checkSchema、schemaInvalid、issuesMacro、reentryGuard、slashCommands；更正 ERA_FEATURES 注释中检查所在的测试文件；版本号改为 2.0.0；ejs 注释更正为分步更新设置；错误负载类型补 source 字段；工具调用与自定义公式函数（tools、exprFns、era:toolResult）；登记 exprCall（表达式调用存成变量的公式）；版本号升级至 2.0.2
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file ERA 变量框架 - 核心常量模块
@@ -41,7 +41,7 @@
 import { z } from 'zod';
 
 /** ERA-Heron（基于 ERA 变量框架二次开发）的版本号。 */
-export const ERA_VERSION = '2.0.1';
+export const ERA_VERSION = '2.0.2';
 
 /**
  * 当前版本提供的功能，供角色卡用 `Era.features.includes(...)` 判断，参见 `Era.features`。

@@ -2,7 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 修改。
  * 日期：2026-11-26
  * 目的：lint 纳入 CI：忽略构建产物 artifact/ 与本地工作副本 .claude/，为 tests/*.cjs、scripts/*.cjs 配置 Node/CommonJS 环境
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 import js from '@eslint/js';
 import tsParser from '@typescript-eslint/parser';

@@ -2,7 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 修改。
  * 日期：2026-11-26
  * 目的：显式写出 source.reasoning: false 与 trim_strings: []（与缺省行为相同），使类型检查通过
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @constant {Omit<TavernRegex, 'id' | 'scope'>} HIDE_ERA_THINKING_REGEX

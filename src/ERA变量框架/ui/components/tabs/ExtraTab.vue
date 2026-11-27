@@ -5,7 +5,7 @@
         2026-11-27 正文前规划：开关与“重新规划最新玩家消息”按钮
         2026-11-27 预设、头部提示词、附带角色信息、请求方式；存为本卡推荐与清除本卡推荐；请求记录
         2026-11-27 请求记录与角色卡推荐在规划完成、切换聊天、写入或清除推荐后刷新；记录用稳定的 key；确认写入时列出写入的项；预设条目位置的说明与实现一致
-  原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+  原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
 -->
 <template>
   <div class="xtab">

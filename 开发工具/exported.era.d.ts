@@ -11,7 +11,7 @@
  *       2026-11-27 registerExprFn 不能注册名为 call 的函数
  *       2026-11-27 BeforeApplyContext 的 commands 注明可以改写（与实现一致）
  *       2026-11-27 Era.extra.status() 增加 history（最近几次分步更新与规划的请求记录）
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 declare namespace Era {
   /** ERA 对 schema 的最小要求: 一个 `safeParse` 方法; zod 的所有 schema 都满足 */
@@ -451,7 +451,7 @@ declare namespace Era {
  * 旧版 ERA 没有该接口, 等待将永远不会结束.
  */
 declare const Era: {
-  /** ERA-Heron 的版本号, 例如 `'2.0.1'` (更早的版本没有该字段, 判断版本请用 `era.ts` 的 `requireEra`) */
+  /** ERA-Heron 的版本号, 例如 `'2.0.2'` (更早的版本没有该字段, 判断版本请用 `era.ts` 的 `requireEra`) */
   version: string;
   /** 当前版本提供的功能, 例如 `Era.features.includes('applyText')` */
   features: readonly string[];

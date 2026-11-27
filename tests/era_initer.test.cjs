@@ -2,7 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-26
  * 目的：“更新旧卡的规则”（initer/manual/update.ts）的测试：替换与备份、并发、失败隔离、正则字段保留、补上缺少的正则、旧版意图说明升级与结果提示
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 // 在假的世界书与正则存储上运行真实的 update.ts。
 // 运行方式: node --test tests/era_initer.test.cjs

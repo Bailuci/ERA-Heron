@@ -3,7 +3,7 @@
  * 日期：2026-11-27
  * 目的：测试表达式中的 call(公式路径, 参数…)：调用存成字符串变量的公式
  *       2026-11-27 call 参数过多时的报错
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 // 存成变量的公式 call（core/crud/expr.ts）的测试。运行方式: node --test tests/era_expr_call.test.cjs
 const assert = require('node:assert/strict');

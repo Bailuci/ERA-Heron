@@ -4,7 +4,7 @@
  * 目的：新增折叠日志存档：旧楼日志存到单独文件，可回滚与查询，缺失时自动从头重放；修复第三批改动在审查中发现的问题；修复复审中发现的问题；存档编号复用，文件数不随重算增长
  * 2026-11-27：假文件接口移到 chat.cjs；存档段日志压缩
  * 2026-11-27：插入后删除合并成不带旧值的 delete（回归用例）
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 // 折叠日志的存档（Sidecar）。
 const test = require('node:test');

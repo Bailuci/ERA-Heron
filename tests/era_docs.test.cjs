@@ -2,7 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-26
  * 目的：为文档示例、规则提示词、隐藏正则与默认状态栏加最小测试保护：示例指令能被真实解析器执行并得到文档写的结果，隐藏正则与解析器支持的标签一致
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 // 文档、提示词与正则的测试。文档或核心逻辑改动后示例悄悄失效时，这里会失败。
 // 运行方式: node --test tests/era_docs.test.cjs

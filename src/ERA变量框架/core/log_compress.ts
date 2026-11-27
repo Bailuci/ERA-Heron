@@ -3,7 +3,7 @@
  * 日期：2026-11-27
  * 目的：存档段的单楼日志压缩（合并同一路径的更新链，抵消插入后删除），写入前逐楼自检
  *       2026-11-27 插入后删除不再整体抵消，改为保留一条不带旧值的 delete
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file ERA 变量框架 - 存档段的日志压缩

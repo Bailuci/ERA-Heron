@@ -4,7 +4,7 @@
  * 目的：新增额外模型分步更新、等待式提交、试算与变量结构说明；新增折叠日志存档：旧楼日志存到单独文件，可回滚与查询，缺失时自动从头重放；修复第三批改动在审查中发现的问题；修复复审中发现的问题；试算可指定随机数种子的 MK；额外模型的试算取不到前一楼状态、退回最新状态时告诉调用方
  *       2026-11-26 试算文本时按当前聊天的解析版本解析
  *       2026-11-27 额外模型的试算按真实写入的形式拼接（appendExtraBlock），开启指令外层标签时校验不再失效；整楼试算可指定是否压缩旁路写入，atomic 预检与实际写入一致；新增 computeFloorIssues（/era-issues 没有报告时重算）；问题带上来源标记 source；新增 simulateUserText（按玩家消息试算，正文前规划用）
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file ERA 变量框架 - 试算

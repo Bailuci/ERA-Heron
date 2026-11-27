@@ -4,7 +4,7 @@
  * 目的：测试：写入事件、查询事件、Era.getVarsAt、等待式写入的目标楼被删除或滑走、全局接口 Era 的参数检查，
  *       以及 exported.era.d.ts、doc/05 与 api/global.ts 的一致性；1.7 新增、待文档阶段补写的成员暂时登记在 PENDING_DOCS_1_7
  *       2026-11-27 文档已补写，删除 PENDING_DOCS_1_7；检查新增的 Era 成员在 doc/05 中有小节（2.0.0 起不再标注版本）
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 // 对外接口（events/handlers/api、api/）测试。运行方式: node --test tests/era_api.test.cjs
 const assert = require('node:assert/strict');

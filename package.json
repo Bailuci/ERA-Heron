@@ -1,6 +1,6 @@
 {
   "name": "era-heron",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "private": true,
   "description": "ERA-Heron：基于 ERA 变量框架（Efficient Rollback Architecture）二次开发的酒馆助手变量框架，用于 SillyTavern + 酒馆助手",
   "license": "SEE LICENSE IN LICENSE",

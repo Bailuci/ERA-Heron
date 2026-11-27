@@ -2,7 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-26 至 2026-11-27
  * 目的：性能基准（路线图 1.7-11）的自检：基线文件覆盖全部场景，比较逻辑只按相对耗时与体积给出警告，场景本身可以运行
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 // 运行方式: node --test tests/era_bench.test.cjs（基准本身用 pnpm bench 运行）
 const assert = require('node:assert/strict');

@@ -4,7 +4,7 @@
  * 目的：测试：拆出测试宿主，新增同步层随机对拍测试；新增脚本设置“日志保留楼层数”；修复“复制消息”产生重复 MK 导致的状态错误；新增更新钩子 Era.onBeforeApply / Era.onAfterApply等；随机对拍加入“移动后直接删除”和含指令的用户消息；同步失败路径、快照口径、写入次数等测试；随机对拍加入表达式 $expr（random、roll、@）与新建表达式的 beforeApply 钩子；随机对拍检查 {{ERA-issues}} 的缓存与从头重放一致（2026-11-26）
  *       2026-11-26 随机对拍加入思考块、指令外层标签、Era.applyText 的旁路写入，覆盖新聊天与旧聊天两种解析版本
  *       2026-11-27 随机对拍加入分步更新写入的 <era_extra>（外层标签、未闭合的思考标签、值里的思考标签字样），新聊天中检查它确实生效
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 // ERA 同步层（resyncStateOnHistoryChange）测试：用内存中的假聊天和假聊天变量驱动真实源码。
 // 运行方式: node --test tests/era_sync.test.cjs

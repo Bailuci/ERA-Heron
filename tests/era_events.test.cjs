@@ -2,7 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-26 至 2026-11-27
  * 目的：测试事件合并、事件队列的异常恢复、发给 AI 的提示词中的宏替换时机、用户消息中的指令；提示词中的状态栏占位符
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 // 事件层测试：合并规则、队列、宏替换与 MESSAGE_SENT。用内存中的假聊天驱动真实源码。
 const assert = require('node:assert/strict');

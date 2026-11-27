@@ -1,7 +1,7 @@
 # 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 修改。
 # 日期：2026-11-25 至 2026-11-26
 # 目的：CI 只检查不改源码；加入 lint、类型检查与 pull_request 检查；只在 main 上构建并提交产物；构建后运行性能基准（只警告不阻断）
-# 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+# 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
 name: bundle
 
 on:

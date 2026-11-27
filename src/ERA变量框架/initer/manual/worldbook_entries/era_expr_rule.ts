@@ -3,7 +3,7 @@
  * 日期：2026-11-26 至 2026-11-27
  * 目的：新增表达式 $expr：默认关闭的可选世界书条目“ERA 表达式规则”。快速初始化不创建、更新旧卡的规则不下发，
  *       作者按 doc/02 自行建条目；分步更新把同名条目当作只发给更新模型的条目
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 import type { PartialDeep } from 'type-fest';
 import content from './era_expr_rule.txt?raw';

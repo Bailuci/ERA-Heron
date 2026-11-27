@@ -3,7 +3,7 @@
  * 日期：2026-11-25 至 2026-11-26
  * 目的：修复复审中发现的问题；发送前等待只拦玩家的发送，脚本用 Era.extra.wait()；修复 [1] 形式的键在 Patch 中的回滚；放弃等待时提示玩家
  *       2026-11-27 等待之后可以先做正文前规划，把结果写进输入框再发送
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file ERA 变量框架 - 发送前等待

@@ -7,7 +7,7 @@
  *       2026-11-27 Era.applyText 在钩子里被拒绝时不再产生未处理的 rejection；新增 Era.registerTool / hasTool、Era.registerExprFn / hasExprFn；commit / applyText 的幂等键 key；Era.extra.plan / replan（正文前规划）；Era.setMessageText
  *       2026-11-27 registerExprFn 的说明：不能注册名为 call 的函数
  *       2026-11-27 更正条目过滤器在主生成中的调用时机说明
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file ERA 变量框架 - 全局接口
@@ -191,11 +191,11 @@ async function commitOperations(
 }
 
 export const Era = {
-  /** ERA-Heron 的版本号，例如 `'1.7.0'`（ERA-Heron 1.7.0 起；更早的版本没有该字段）。 */
+  /** ERA-Heron 的版本号，例如 `'2.0.2'`（原版 ERA 没有该字段）。 */
   version: ERA_VERSION as string,
 
   /**
-   * 当前版本提供的功能，例如 `Era.features.includes('applyText')`。只读（ERA-Heron 1.7.0 起）。
+   * 当前版本提供的功能，例如 `Era.features.includes('applyText')`。只读。
    * 判断版本请用 `开发工具/era.ts` 的 `requireEra`。
    */
   features: FEATURES,

@@ -3,7 +3,7 @@
  * 日期：2026-11-26
  * 目的：测试 1.7 的版本标识（Era.version、Era.features、解析版本与写入版本标记、ERA最低版本）、
  *       新聊天不执行思考块里的指令与指令外层标签、Era.parseCommands / Era.applyText / Era.keepMessageKey
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 // 运行方式: node --test tests/era_parse.test.cjs
 const assert = require('node:assert/strict');

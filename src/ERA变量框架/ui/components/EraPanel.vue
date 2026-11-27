@@ -2,7 +2,7 @@
   修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 修改。
   日期：2026-11-26
   目的：重新设计面板：卡片式布局与图标导航（标签页注册表）；可拖动、调整大小、在浮动与侧边停靠之间切换、最小化，状态按设备保存；手机上全屏显示
-  原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+  原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
 -->
 <template>
   <section

@@ -4,7 +4,7 @@
  * 目的：新增脚本设置“API写入不修改消息”；新增 <VariablePatch> 指令、宽松解析、只读字段与指令问题报告；修复第三批改动在审查中发现的问题；表达式 $expr 的稳定身份
  *       2026-11-26 旁路写入新增可选的来源 origin（Era.applyText 从文本解析的写入为 'text'），合并与压缩只在来源相同的写入之间进行
  *       2026-11-27 合并出的旁路写入指令标上 source: 'apiOps'（只用于报告，{{ERA-issues}} 不把它们当成主模型写的）；旁路写入可以是工具调用；带幂等键的写入不合并、不压缩
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file ERA 变量框架 - 旁路 API 写入模块

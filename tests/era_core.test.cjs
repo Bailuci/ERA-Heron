@@ -2,7 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-25
  * 目的：为核心计算逻辑添加单元测试；补充审查问题的回归测试；修复 update 日志记录过期旧值导致的回滚错误；测试：拆出测试宿主，新增同步层随机对拍测试等
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 // ERA 核心计算逻辑的单元测试。
 // 在独立宿主中直接加载真实的 TypeScript 源码，不依赖构建产物或真实酒馆。

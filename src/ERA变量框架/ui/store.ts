@@ -3,7 +3,7 @@
  * 日期：2026-11-26
  * 目的：重新设计面板：布局与状态持久化、悬浮球状态提示；事件数据改用 shallowRef，面板关闭时不重算；问题可以带一个跳转的页面（变量结构诊断）
  *       2026-11-27 记录切换聊天的次数（chatVersion），面板据此刷新请求记录与角色卡推荐
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 import { defineStore } from 'pinia';
 import { computed, reactive, ref, shallowRef, watch } from 'vue';

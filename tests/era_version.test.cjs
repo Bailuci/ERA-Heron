@@ -2,7 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-26
  * 目的：校验分散在各处的版本号一致（package.json、constants.ts、修改记录、README 与文档中的导入地址）
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 // 版本号一致性测试。发版时只改了 package.json 而漏改其他地方，这里会失败并指出位置。
 // 运行方式: node --test tests/era_version.test.cjs
@@ -36,9 +36,9 @@ test('constants.ts 的 ERA_VERSION 与 package.json 一致', () => {
   assert.equal(match[1], VERSION);
 });
 
-test('修改记录.md 最新一节的版本号与 package.json 一致', () => {
-  const match = read('修改记录.md').match(/^## (\d+\.\d+\.\d+)\b/m);
-  assert.ok(match, '修改记录.md 中找不到“## X.Y.Z”形式的版本标题');
+test('更新日志.md 最新一节的版本号与 package.json 一致', () => {
+  const match = read('更新日志.md').match(/^## (\d+\.\d+\.\d+)\b/m);
+  assert.ok(match, '更新日志.md 中找不到“## X.Y.Z”形式的版本标题');
   assert.equal(match[1], VERSION);
 });
 

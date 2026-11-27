@@ -4,7 +4,7 @@
  * 目的：新增表达式 $expr：<VariableEdit> 中 {"$expr": "..."} 叶子按公式与骰点求值
  *       2026-11-27 新增 call(公式路径, 参数…)：调用存成字符串变量的公式，公式里用 a、b、c… 引用参数
  *       2026-11-27 call 参数过多时的报错写明“最多 15 个参数（不含公式路径）”
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file ERA 变量框架 - 表达式求值

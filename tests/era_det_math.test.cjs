@@ -2,7 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-26
  * 目的：新增确定性数学库 det_math 的金标准位模式测试
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 // det_math 的金标准位模式测试。
 // 期望值由 Java 21 的 StrictMath 生成（Java 规范要求 StrictMath 与 fdlibm 5.3 的结果逐位一致）；

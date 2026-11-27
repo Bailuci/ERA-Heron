@@ -4,7 +4,7 @@
  * 目的：新增额外模型分步更新、等待式提交、试算与变量结构说明；修复第三批改动在审查中发现的问题；修复复审中发现的问题；发送前等待只拦玩家的发送，脚本用 Era.extra.wait()；修复 [1] 形式的键在 Patch 中的回滚；分步更新的重试、退避、备用接口、角色卡推荐、超时等待、“继续”、status() 与 run() 的测试；条目过滤器、EJS 渲染、warnings、实测的 generateRaw 错误形状、写入已到正文但同步未完成
  *       2026-11-27 预设、头部提示词、附带角色信息、流式请求、存为本卡推荐与 status().history 的测试
  *       2026-11-27 主生成标记卡住、规划摘要的配对注入、切换聊天后丢弃旧聊天的结果、跟随角色卡时保留卡里的变量更新方式
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 // 等待式写入、试算、变量结构说明与额外模型解析。
 const test = require('node:test');

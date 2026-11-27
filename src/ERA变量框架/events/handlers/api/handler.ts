@@ -4,7 +4,7 @@
  * 目的：API 写入与 forceSync 在事件队列中等待完成；新增脚本设置“API写入不修改消息”；修复第二批改动在审查中发现的问题；新增额外模型分步更新、等待式提交、试算与变量结构说明等；更新过时的注释与路径示例；
  *       2026-11-26 Era.applyText 经 commit 提交文本中的指令；新聊天设置了指令外层标签时，追加到正文的指令块包在外层标签里
  *       2026-11-27 atomic 预检与实际写入使用相同的压缩参数，含 $expr 的写入预检与落盘的骰点一致；Era.commit 可以写工具调用 { call }；幂等键 key
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file ERA 变量框架 - 外部事件 API 实现模块

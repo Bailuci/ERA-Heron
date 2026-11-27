@@ -5,7 +5,7 @@
  *       2026-11-26 设置保留不认识的字段，旧版本保存一次不会丢掉新版本增加的设置
  *       2026-11-27 分阶段选预设、头部提示词、附带角色描述与用户人设、流式请求；把当前设置存为本卡推荐、清除本卡推荐
  *       2026-11-27 存为本卡推荐时，玩家是“跟随角色卡”则保留卡里原有的变量更新方式推荐
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
  * @file ERA 变量框架 - 额外模型的设置

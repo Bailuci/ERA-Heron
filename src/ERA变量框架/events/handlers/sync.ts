@@ -2,7 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 修改。
  * 日期：2026-11-25 至 2026-11-26
  * 目的：修复 rollbackTo 之后状态错误；新增脚本设置“API写入不修改消息”；修复第二批改动在审查中发现的问题；新增额外模型分步更新、等待式提交、试算与变量结构说明；同步放弃或失败时不再更新末楼 MK、不发出 writeDone；合并后的任务保留完全重算与清理需求
- * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 修改记录.md
+ * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 'use strict';
 
