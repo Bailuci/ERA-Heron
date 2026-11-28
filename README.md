@@ -10,7 +10,7 @@ ERA（Efficient Rollback Architecture）是一个 [酒馆助手（Tavern Helper�
 
 当前版本：**2.0.7** · [更新日志](更新日志.md) · 许可：[AFPL](LICENSE)（免费使用，不得收费分发）
 
-**示例卡**：[ERA-Heron示例卡](https://github.com/Bailuci/ERA-Heron-Example)，一张简易的VIBE制作的RPG同层前端卡，ERA 的主要能力都对应一处玩法，附拆卡指南和 ERA 制卡规范。[直接下载卡](https://github.com/Bailuci/ERA-Heron-Example/releases/latest/download/ERA-Heron-Example.png)。
+**示例卡**：[ERA-Heron示例卡](https://github.com/Bailuci/ERA-Heron-Example)，一张简易的VIBE制作的RPG同层前端卡，ERA 的主要能力都对应一处玩法，附拆卡指南和 ERA 制卡规范。[直接下载](https://github.com/Bailuci/ERA-Heron-Example/releases/latest/download/ERA-Heron-Example.png)。
 
 ---
 
