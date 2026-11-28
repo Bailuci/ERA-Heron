@@ -10,6 +10,8 @@ ERA（Efficient Rollback Architecture）是一个 [酒馆助手（Tavern Helper�
 
 当前版本：**2.0.7** · [更新日志](更新日志.md) · 许可：[AFPL](LICENSE)（免费使用，不得收费分发）
 
+**示例卡**：[ERA-Heron示例卡《蜃湾异闻》](https://github.com/Bailuci/ERA-Heron-Example)，一张能玩的雾港探索 RPG，ERA 的主要能力都对应一处玩法，附拆卡指南和 ERA 制卡规范。[直接下载卡](https://github.com/Bailuci/ERA-Heron-Example/releases/latest/download/ERA-Heron-Example.png)。
+
 ---
 
 ## 界面预览
@@ -119,6 +121,7 @@ flowchart TD
 | --- | --- |
 | 在角色卡里装上 ERA | [安装](#安装) |
 | 第一次做 ERA 卡 | [01 快速上手](doc/01-快速上手.md) |
+| 看一张完整的 ERA 卡怎么做 | [ERA-Heron示例卡](https://github.com/Bailuci/ERA-Heron-Example)（源码、拆卡指南、制卡规范） |
 | 让 AI 帮我做 ERA 卡 | 把 [给AI的制卡流程](doc/给AI的制卡流程/SKILL.md) 发给 AI |
 | 查指令、`$expr`、`call()` 和 `<EraFCall>` 怎么写 | [02 指令手册](doc/02-指令手册.md) |
 | 做楼层状态栏或常驻面板 | [03 状态栏](doc/03-状态栏.md) · [04 宏](doc/04-宏.md) |
