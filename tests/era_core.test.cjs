@@ -2,6 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-25
  * 目的：为核心计算逻辑添加单元测试；补充审查问题的回归测试；修复 update 日志记录过期旧值导致的回滚错误；测试：拆出测试宿主，新增同步层随机对拍测试等
+ *       2026-11-28 切换角色卡的过渡态里注册
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 // ERA 核心计算逻辑的单元测试。
@@ -703,4 +704,38 @@ test('群聊中 schema 和钩子以群组为归属', () => {
   host.registry.setActiveSchema(PlayerSchema);
   host.context.SillyTavern.characterId = 'member';
   assert.notEqual(host.registry.getActiveSchema(), null);
+});
+
+// ---------- 2.0.7：切换角色卡的过渡态里注册 ----------
+
+test('读不到角色卡时注册的 schema、钩子，上下文就绪后归到当前角色卡，不会被当成遗留清掉', () => {
+  const host = create_host();
+  const st = host.context.SillyTavern;
+  const ready = Object.getOwnPropertyDescriptor(st, 'characterId');
+  // 过渡态：访问 SillyTavern 的属性会抛错
+  Object.defineProperty(st, 'characterId', {
+    configurable: true,
+    get() {
+      throw new Error("Cannot read properties of undefined (reading 'getContext')");
+    },
+  });
+  assert.equal(host.registry.getCurrentOwner(), 'unknown');
+  host.registry.setActiveSchema(PlayerSchema);
+  host.hook_registry.addHook('after', 'x', () => {});
+  assert.notEqual(host.registry.getActiveSchema(), null, '读不到角色卡时不清');
+  // 上下文就绪
+  Object.defineProperty(st, 'characterId', ready);
+  assert.notEqual(host.registry.getActiveSchema(), null);
+  assert.equal(host.registry.getActiveSchema().owner, 'test-card');
+  assert.equal(host.hook_registry.hasActiveHooks(), true);
+  // 之后换卡，仍然按遗留处理
+  st.characterId = 'another-card';
+  assert.equal(host.registry.getActiveSchema(), null);
+  assert.equal(host.hook_registry.hasActiveHooks(), false);
+});
+
+test('没有打开角色卡（characterId 为空）时的标识是 unknown，不是字符串 "undefined"', () => {
+  const host = create_host();
+  host.context.SillyTavern.characterId = undefined;
+  assert.equal(host.registry.getCurrentOwner(), 'unknown');
 });

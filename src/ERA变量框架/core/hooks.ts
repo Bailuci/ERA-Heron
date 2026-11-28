@@ -5,6 +5,7 @@
  *       2026-11-27 beforeApply 钩子保留指令的来源标记 source；指令可以是工具调用（type: 'call'）；保留正文指令的块序号
  *       2026-11-28 钩子看到的指令带只读的 origin / source
  *       2026-11-28 钩子看到的 source 用公开的取值 api / extra
+ *       2026-11-28 来源标记不再转换（内部已统一为 api）
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -134,8 +135,7 @@ const toCommandView = (commands: EraCommand[]): EraHookCommand[] =>
     type,
     data: toJson(isRaw(type) ? data : unescapeEraData(data)),
     origin: origin ?? 'text',
-    // 内部的 `apiOps` 对外叫 `api`
-    ...(source === undefined ? {} : { source: source === 'apiOps' ? ('api' as const) : source }),
+    ...(source === undefined ? {} : { source }),
   }));
 
 /**

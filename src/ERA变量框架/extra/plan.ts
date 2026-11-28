@@ -4,6 +4,7 @@
  *       2026-11-27 可选附上角色描述与用户人设（设置“附带角色信息”）
  *       2026-11-28 问题说明改用 describeIssue
  *       2026-11-28 试算按写入的形式进行；数字的增减要求用增量写法
+ *       2026-11-28 规划提示词不重复附变量结构与当前变量；EJS 渲染过的条目不带主模型的问题报告
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -114,16 +115,25 @@ export function buildPlanPrompts(input: PlanInput): { role: 'system' | 'assistan
   for (const entry of input.entries) {
     prompts.push({
       role: 'system',
-      content: entry.rendered ? parseEraMacros(entry.content, stat, statWithoutMeta) : render(entry.content),
+      // 渲染过 EJS 的条目不再替换酒馆的宏，但 ERA 的宏照旧，同样不带主模型的问题报告
+      content: entry.rendered
+        ? parseEraMacros(entry.content, stat, statWithoutMeta, { issues: false })
+        : render(entry.content),
     });
   }
   if (input.config.附带角色信息 === '开启') {
     const info = describeCharacterInfo();
     if (info) prompts.push({ role: 'system', content: info });
   }
+  // 条目里已经用宏写了变量结构、全部变量时不再附一份（与分步更新的提示词相同），否则每次规划都发两遍
+  const uses = (macro: RegExp) => input.entries.some(entry => macro.test(entry.content));
   const schema = describeActiveSchema();
-  if (schema) prompts.push({ role: 'system', content: `<变量结构>\n${schema}\n</变量结构>` });
-  prompts.push({ role: 'system', content: `<当前变量>\n${JSON.stringify(statWithoutMeta)}\n</当前变量>` });
+  if (schema && !uses(/{{\s*ERA-schema\s*}}/i)) {
+    prompts.push({ role: 'system', content: `<变量结构>\n${schema}\n</变量结构>` });
+  }
+  if (!uses(/{{\s*ERA(-withmeta)?\s*:\s*\$ALLDATA\s*}}/i)) {
+    prompts.push({ role: 'system', content: `<当前变量>\n${JSON.stringify(statWithoutMeta)}\n</当前变量>` });
+  }
   const recent = input.messages.slice(-input.config.聊天楼层数);
   const lines = recent.map(formatHistory).filter(Boolean);
   if (lines.length > 0) prompts.push({ role: 'user', content: `<之前的剧情>\n${lines.join('\n\n')}\n</之前的剧情>` });

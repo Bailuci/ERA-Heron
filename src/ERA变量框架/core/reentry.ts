@@ -5,6 +5,7 @@
  *       合并时把 Era.applyText 纳入保护
  *       2026-11-27 说明条目过滤器（Era.registerEntryFilter）同样在保护下调用
  *       2026-11-28 重入保护登记 Era.sync、Era.extra.autoRun
+ *       2026-11-28 注册接口加入受保护的入口
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -43,6 +44,13 @@ export const GUARDED_ENTRIES = [
   'Era.extra.wait',
   'Era.extra.plan',
   'Era.extra.replan',
+  // 注册会在稍后触发一次重算，重算又会执行钩子和工具
+  'Era.registerSchema',
+  'Era.onBeforeApply',
+  'Era.onAfterApply',
+  'Era.registerTool',
+  'Era.registerExprFn',
+  'Era.registerEntryFilter',
 ] as const;
 
 /** 受保护的写入事件：钩子执行期间发出时不入队。 */

@@ -272,7 +272,7 @@ test('Era.applyText：作为 origin: text 的旁路写入执行，不改正文�
   assert.equal(env.chat[0].swipes[0], text, '正文不变');
   assert.deepEqual(plain(result.statWithoutMeta), { _x: 1, a: 2, list: [] }, '下划线只读拒绝了 _x，思考块里的不执行');
   const ops = env.meta().ApiOps[env.mk(0)].ops;
-  assert.deepEqual(plain(ops), [{ type: 'edit', data: [{ a: 2, _x: 5 }], after: 1, by: 'block', origin: 'text' }]);
+  assert.deepEqual(plain(ops), [{ type: 'edit', data: [{ a: 2, _x: 5 }], after: 1, by: 'body', origin: 'text' }]);
 
   await env.commit({ edit: { _x: 7 } });
   assert.equal(env.stat()._x, 7, 'Era.commit 是旁路写入，不受限制');

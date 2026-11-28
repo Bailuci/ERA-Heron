@@ -2,6 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-26
  * 目的：变量结构一键修复：在最新 AI 楼上试算修复值，确认后用 atomic 提交写入，写入前核对、写入后可撤销
+ *       2026-11-28 旁路写入的位置改用 apiPositionOf
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -34,7 +35,7 @@ import { toApiOps } from '../events/handlers/api/handler';
 import { createTicket, registerTicket } from '../events/handlers/api/tickets';
 import { API_OPS_PATH, ApiOp, ApiOpsRecord } from '../utils/constants';
 import { getEraData, updateEraMetaData } from '../utils/era_data';
-import { countCommandBlocks, getMessageContent } from '../utils/message';
+import { apiPositionOf, getMessageContent } from '../utils/message';
 import { openFloor } from './floor_preview';
 import { diffToOps, WorkbenchOp } from './workbench';
 
@@ -142,7 +143,7 @@ export async function applySchemaFix(
   if (!preview.ready) throw new Error('修复预览没有通过检查，不能写入');
   const msg = await assertSameFloor(preview);
   const operations = [{ patch: preview.ops }];
-  const [expected] = toApiOps(operations, countCommandBlocks(msg));
+  const [expected] = toApiOps(operations, apiPositionOf(msg));
   await commit(operations, { atomic: true, mk: preview.mk });
   const record = recordOf(preview.mk);
   const last = _.last(record?.ops ?? []);

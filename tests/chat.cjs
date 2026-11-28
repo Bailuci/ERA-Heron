@@ -115,7 +115,7 @@ function create_chat(options = {}) {
       const msg = { message_id, role, swipes, swipe_id };
       const mk = host.mk.readMessageKey(msg);
       if (!mk) return null;
-      const after = host.load_src('utils/message').countCommandBlocks(msg);
+      const after = host.load_src('utils/message').apiPositionOf(msg);
       const op = host.api_ops.createApiOp(type, data, after, false);
       await host.era_data.updateEraMetaData(meta => {
         meta.ApiOps = { ...meta.ApiOps, [mk]: host.api_ops.appendApiOp(meta.ApiOps?.[mk], op, compact) };
@@ -129,7 +129,7 @@ function create_chat(options = {}) {
       const msg = { message_id, role, swipes, swipe_id };
       const mk = host.mk.readMessageKey(msg);
       if (!mk) return null;
-      const after = host.load_src('utils/message').countCommandBlocks(msg);
+      const after = host.load_src('utils/message').apiPositionOf(msg);
       const parse = host.load_src('core/version').getParseOptions(variables.ERAMetaData ?? {});
       const { ops } = host.api_ops.createTextApiOps(text, after, false, parse);
       if (ops.length === 0) return null;

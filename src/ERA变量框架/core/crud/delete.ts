@@ -3,6 +3,7 @@
  * 日期：2026-11-25
  * 目的：新增 <VariablePatch> 指令、宽松解析、只读字段与指令问题报告；修复复审中发现的问题
  *       2026-11-27 新聊天里非对象值的删除写法同样受 necessary:"children" 保护
+ *       2026-11-28 新聊天：整体删除时检查其中受保护的内容；删不掉保护的 $meta.necessary 写法不算解除
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -23,7 +24,7 @@
 
 import { resolveKeyPath } from '../../utils/data';
 import { Logger } from '../../utils/log';
-import { CommandIssue, isReadonlyKey, reportIssue } from './diagnostics';
+import { CommandIssue, findProtectedInside, isReadonlyKey, reportIssue } from './diagnostics';
 
 const logger = new Logger();
 
@@ -63,11 +64,14 @@ function applyDeleteAtLevel(
 
   // 精确判断豁免条件
   const metaPatch = _.get(patchObj, '$meta');
+  const necessaryPatch = _.get(metaPatch, 'necessary');
   const isBypassingProtection =
     // 场景1: 指令要删除整个 $meta 对象
     (_.isPlainObject(metaPatch) && _.isEmpty(metaPatch)) ||
-    // 场景2: 指令明确要删除 $meta.necessary 键
-    _.has(patchObj, ['$meta', 'necessary']);
+    // 场景2: 指令明确要删除 $meta.necessary 键。
+    // 新聊天里必须真的是“删除这个键”的写法：`{ necessary: { 随便什么: {} } }` 删不掉保护，不能算解除
+    (_.has(patchObj, ['$meta', 'necessary']) &&
+      (!strict || !_.isPlainObject(necessaryPatch) || _.isEmpty(necessaryPatch)));
 
   // --- 2. 判断意图：递归删除子节点 vs 删除当前节点 ---
   if (_.isPlainObject(patchObj) && !_.isEmpty(patchObj)) {
@@ -142,6 +146,15 @@ function applyDeleteAtLevel(
       patchObj,
     });
     return;
+  }
+
+  // 删掉一个对象或数组时，其中受保护的内容会一起丢掉：新聊天里拒绝这样的删除（与整体覆盖相同）
+  if (strict) {
+    const reason = findProtectedInside(currentNodeInVars, !allowReadonly);
+    if (reason) {
+      reportIssue(issues, 'delete', basePath, `${reason}，不能整体删除`);
+      return;
+    }
   }
 
   // 执行原子性删除

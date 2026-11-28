@@ -4,6 +4,7 @@
  * 目的：新增折叠日志存档：旧楼日志存到单独文件，可回滚与查询，缺失时自动从头重放；修复第三批改动在审查中发现的问题；修复复审中发现的问题；存档编号复用，文件数不随重算增长
  * 2026-11-27：假文件接口移到 chat.cjs；存档段日志压缩
  * 2026-11-27：插入后删除合并成不带旧值的 delete（回归用例）
+ * 2026-11-28 超过 30 段的存档
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 // 折叠日志的存档（Sidecar）。
@@ -497,4 +498,17 @@ test('日志压缩：存档段里的日志被压缩，还原后查询、回滚�
     await next.sync();
     assert.deepEqual(plain(next.stat()), plain(await next.replay()), `删除第 ${index} 楼`);
   }
+});
+
+test('存档：超过 30 段的长聊天重新打开后，各段同时留在缓存里，旧楼仍能查询', async () => {
+  const server = create_files();
+  const c = await archived_chat(server, { count: 345 });
+  assert.ok(c.meta().LogArchive.segments.length > 30, `段数 ${c.meta().LogArchive.segments.length}`);
+  const next = await reopen(c, server);
+  await next.archive.loadArchive(next.meta());
+  for (const i of [0, 5, 150, 300, 344]) assert.equal(at(next, i).n, i);
+  // 已经读过的段不再重复拉取
+  const before = server.log.length;
+  await next.archive.loadArchive(next.meta());
+  assert.equal(server.log.length, before);
 });

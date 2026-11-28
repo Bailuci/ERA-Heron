@@ -2,6 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-26
  * 目的：分步更新按目标楼的状态渲染世界书条目中的 EJS（提示词模板插件），隔离写函数
+ *       2026-11-28 era.purpose 按实际用途
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -134,7 +135,7 @@ export interface EjsRenderer {
 export async function createEjsRenderer(
   engine: EjsEngine,
   statRaw: any,
-  extras: { mk: string },
+  extras: { mk: string; purpose?: 'extra' | 'plan' | 'main' },
   warnings: string[],
   deadline: number,
 ): Promise<EjsRenderer> {
@@ -186,7 +187,7 @@ export async function createEjsRenderer(
     _.set(ctx, name, next);
     return old;
   };
-  ctx.era = { purpose: 'extra', mk: extras.mk };
+  ctx.era = { purpose: extras.purpose ?? 'extra', mk: extras.mk };
 
   const run = async (code: string, label: string): Promise<string> => {
     current = label;

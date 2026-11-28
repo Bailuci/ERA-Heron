@@ -2,6 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-28
  * 目的：脚本删楼（不发事件）之后直接新建不带指令的玩家楼：被删楼层的改动必须回滚，结果与从头重放一致
+ *       2026-11-28 记录末尾为空时的完全重算
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 // 运行方式: node --test tests/era_script_delete.test.cjs
@@ -106,4 +107,19 @@ test('rollbackTo 截断记录之后发送玩家消息：不因为这条判断而
   await ctx.fire('MESSAGE_SENT', 2);
   assert.deepEqual(ctx.stat(), { hp: 10 });
   await same_as_replay(ctx, '原生删除后发送');
+});
+
+test('旧聊天记录的最后一项是空的（末楼是玩家消息）：完全重算不会在现有变量上重复执行第 0 楼', async () => {
+  const ctx = create_env();
+  ctx.env.send('assistant', T('Insert', { hp: 10, n: 0 }));
+  await ctx.fire('MESSAGE_RECEIVED', 0);
+  ctx.env.send('assistant', T('Edit', { n: '+=1' }));
+  await ctx.fire('MESSAGE_RECEIVED', 1);
+  assert.deepEqual(ctx.stat(), { hp: 10, n: 1 });
+  // 旧版本不给玩家楼登记：末楼是玩家消息，记录的最后一项是 null
+  ctx.env.send('user', '继续');
+  ctx.env.meta().SelectedMks.push(null);
+  await ctx.env.sync(true);
+  assert.deepEqual(ctx.stat(), { hp: 10, n: 1 }, '没有重复累加');
+  await same_as_replay(ctx, '完全重算后');
 });

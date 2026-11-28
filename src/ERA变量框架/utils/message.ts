@@ -8,6 +8,7 @@
  *       2026-11-27 工具调用 <EraFCall>：解析、计数、提取与剥离；keepEraBlocks（保留 ERA 写在正文里的块）
  *       2026-11-27 新增 getMessageAt（按楼层号取消息，越界返回 undefined）
  *       2026-11-28 keepEraBlocks 同时保留玩家消息里的 <era_plan>
+ *       2026-11-28 新增 apiPositionOf；正文指令带正文块序号 body
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -167,10 +168,6 @@ export function getMessageContent(msg: any): string | null {
 }
 
 /**
- * **【获取消息原文】** 不展开宏的消息内容，与 `updateMessageContent` 写入的位置一致（有 swipes 时取当前 swipe）。
- * 需要修改正文再写回时必须用它：`getMessageContent` 会展开 `{{user}}` 等宏，写回去会把宏固定成当前的名字。
- */
-/**
  * 按楼层号取一条消息（含全部 swipe），负数从末尾倒数；楼层不存在时返回 `undefined`。
  * 酒馆助手的 `getChatMessages(楼层号)` 会把越界的楼层号夹到首楼或末楼，
  * 调用方传来的楼层号（可能是删楼前记下的）必须用这个函数取，否则会操作到别的楼。
@@ -181,6 +178,10 @@ export function getMessageAt(message_id: number): any {
   return all.at(message_id);
 }
 
+/**
+ * **【获取消息原文】** 不展开宏的消息内容，与 `updateMessageContent` 写入的位置一致（有 swipes 时取当前 swipe）。
+ * 需要修改正文再写回时必须用它：`getMessageContent` 会展开 `{{user}}` 等宏，写回去会把宏固定成当前的名字。
+ */
 export function getRawMessageContent(msg: any): string {
   if (!msg) return '';
   const raw = Array.isArray(msg.swipes) ? msg.swipes[Number(msg.swipe_id ?? 0)] : (msg.mes ?? msg.message);
@@ -486,6 +487,8 @@ export interface EraCommand {
   origin?: 'text' | 'api' | 'hook' | 'tool';
   /** 在正文的全部指令块（含无法解析的）中的序号。 */
   block?: number;
+  /** 在正文的指令块里的序号，不把 `<era_extra>` 里的块算进去；`<era_extra>` 里的指令没有这一项。 */
+  body?: number;
   /** 早期版本是否会计入这条指令，用于解释早期保存的旁路写入的位置。 */
   legacy?: boolean;
   /**
@@ -498,7 +501,7 @@ export interface EraCommand {
    * `extra` 是正文 `<era_extra>` 中额外模型的输出，`apiOps` 是 `ApiOps` 中的旁路写入（含 `Era.applyText`）。
    * 主模型自己写在正文里的指令没有。
    */
-  source?: 'extra' | 'apiOps';
+  source?: 'extra' | 'api';
 }
 
 const COMMAND_REGEX =
@@ -543,6 +546,30 @@ function parseCallArgs(text: string): any {
  */
 export function countCommandBlocks(msg: any): number {
   return [...(getMessageContent(msg) ?? '').matchAll(BLOCK_REGEX)].length;
+}
+
+/** 一条旁路写入在楼里的位置，见 `apiPositionOf`。 */
+export interface ApiPosition {
+  /** 写入时正文里的指令块数，不含 `<era_extra>` 里的。 */
+  after: number;
+  /** 写入时这一楼是否已经有额外模型的输出 `<era_extra>`。 */
+  ax: boolean;
+}
+
+/**
+ * 现在往这一楼追加一条旁路写入，它应当排在哪里：正文的前 `after` 个指令块之后；
+ * `ax` 为真时还排在额外模型的输出之后。
+ *
+ * 正文的块和 `<era_extra>` 的块分开记：以前两者合在一起数，改写正文让块数变了之后，
+ * 旁路写入与额外模型输出的先后会跟着翻转（只改了文字，变量却变了）。
+ * 与 `countCommandBlocks` 一样按未遮蔽的原文计数。
+ */
+export function apiPositionOf(msg: any, options: ParseOptions | undefined = getCurrentParseOptions()): ApiPosition {
+  const text = getMessageContent(msg) ?? '';
+  const ranges = findExtraRanges(text, extraRangeTags(options));
+  const inExtra = (at: number) => ranges.some(([start, end]) => at >= start && at < end);
+  const starts = [...text.matchAll(BLOCK_REGEX)].map(match => match.index);
+  return { after: starts.filter(at => !inExtra(at)).length, ax: ranges.length > 0 };
 }
 
 /** 解析方式，参见 `core/version.ts` 的 `getParseOptions`。缺省表示旧聊天的全文匹配。 */
@@ -755,16 +782,22 @@ export function parseCommandText(
   if (!text) return [];
   const masked = maskCommandText(text, options);
   // 遮蔽后仍能匹配的块，序号取原文中在它之前开始的块数；没有遮蔽时就是匹配的序号
+  const matches = [...masked.matchAll(BLOCK_REGEX)];
   const rawStarts = masked === text ? null : [...text.matchAll(BLOCK_REGEX)].map(match => match.index);
   // 额外模型输出中的指令标上来源，只用于报告；旧聊天同样标记，不改变执行结果
   const extraRanges = findExtraRanges(text, extraRangeTags(options));
   const inExtra = (at: number) => extraRanges.some(([start, end]) => at >= start && at < end);
   const commands: EraCommand[] = [];
+  // 正文里（不在 <era_extra> 里）的块的起点，用来给正文指令编“正文块序号”
+  const bodyStarts =
+    extraRanges.length === 0 ? null : (rawStarts ?? matches.map(match => match.index)).filter(at => !inExtra(at));
 
   // COMMAND_REGEX 包含负向先行断言，可以一次性、正确地提取出指令块，同时忽略所有嵌套的、不相关的标签。
-  for (const [index, match] of [...masked.matchAll(BLOCK_REGEX)].entries()) {
+  for (const [index, match] of matches.entries()) {
     const block = rawStarts ? _.sortedIndex(rawStarts, match.index) : index;
-    const sourceTag = inExtra(match.index) ? { source: 'extra' as const } : {};
+    const sourceTag = inExtra(match.index)
+      ? { source: 'extra' as const }
+      : { body: bodyStarts ? _.sortedIndex(bodyStarts, match.index) : block };
     if (match[1] === undefined) {
       // 工具调用：参数原样保存（不转义），由工具执行时校验
       const attrs = match[4] ?? '';

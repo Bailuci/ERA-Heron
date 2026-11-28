@@ -2,6 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-25 至 2026-11-26
  * 目的：新增更新钩子 Era.onBeforeApply / Era.onAfterApply；新增 Era.hasHook，供前端工具在 ERA 重载后补注册
+ *       2026-11-28 切换角色卡的过渡态里注册的钩子归到当前角色卡
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -14,7 +15,7 @@
 
 import { EraHookOptions, HookPhase, RegisteredHook } from '../core/hooks';
 import { Logger } from '../utils/log';
-import { getCurrentOwner } from './schema_registry';
+import { getCurrentOwner, isOwnedByCurrent } from './schema_registry';
 
 const logger = new Logger();
 
@@ -58,9 +59,9 @@ export function dropHook(hook: RegisteredHook): boolean {
 /** 丢弃不属于当前角色卡的钩子，避免遗留的钩子改写其他角色卡的变量。 */
 function purge() {
   const owner = getCurrentOwner();
-  if (hooks.some(hook => hook.owner !== owner)) {
+  if (hooks.some(hook => !isOwnedByCurrent(hook, owner))) {
     logger.warn('purge', '当前角色卡与注册钩子时不同，已自动注销遗留的钩子。');
-    hooks = hooks.filter(hook => hook.owner === owner);
+    hooks = hooks.filter(hook => isOwnedByCurrent(hook, owner));
   }
 }
 

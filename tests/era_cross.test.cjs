@@ -10,6 +10,7 @@
 // 运行方式: node --test tests/era_cross.test.cjs
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const _ = require('lodash');
 const { create_chat, plain } = require('./chat.cjs');
 
 const T = (tag, value) => `<Variable${tag}>${JSON.stringify(value)}</Variable${tag}>`;
@@ -373,8 +374,8 @@ test('E：{{ERA-issues}} 不报告额外模型输出与 Era.applyText 的问题�
   const sources = plain(getLatestReport().issues.map(({ path, origin, source }) => ({ path, origin, source })));
   assert.deepEqual(sources, [
     { path: '钱', origin: 'text', source: 'extra' },
-    { path: '前端缺', origin: 'text', source: 'apiOps' },
-    { path: '接口缺', origin: 'api', source: 'apiOps' },
+    { path: '前端缺', origin: 'text', source: 'api' },
+    { path: '接口缺', origin: 'api', source: 'api' },
   ]);
 
   // 主模型自己写错的仍然报告，包括无法解析的块；额外输出里无法解析的块不报告
@@ -442,7 +443,7 @@ test('F：/era-issues 先读同步时的报告，没有报告时重算；format=
     [
       ['主模型缺', undefined],
       ['钱', 'extra'],
-      ['前端缺', 'apiOps'],
+      ['前端缺', 'api'],
     ],
   );
   assert.equal(json.mk, env.mk(2));
@@ -608,7 +609,7 @@ test('K：atomic 提交含 $expr 时，预检与落盘的骰点一致，不会�
   await env.sync();
   const text = T('Edit', { hp: 7 }) + T('Edit', { mp: { $expr: 'roll(1, 1000000)' } });
   const { createFloorSimulator } = env.load('core/simulate');
-  const after = env.load('utils/message').countCommandBlocks({ message_id: 0, ...env.chat[0] });
+  const after = env.load('utils/message').apiPositionOf({ message_id: 0, ...env.chat[0] });
   const parse = env.load('core/version').getParseOptions(env.meta());
   const { ops } = env.host.api_ops.createTextApiOps(text, after, false, parse);
   const simulator = await createFloorSimulator({ message_id: 0, ...env.chat[0] });
@@ -923,4 +924,106 @@ test('写入事件 × 没闭合的思考标签：追加到正文不会执行时�
   assert.equal(c.stat().金币, 15);
   assert.equal(c.chat[2].swipes[0], before, '正文没有被追加一个不会执行的指令块');
   assert.deepEqual(plain(await c.replay()), plain(c.stat()));
+});
+
+test('旁路写入的位置：改写正文让指令块数量变了，它与额外模型输出的先后不变', async () => {
+  const rewriter = env => {
+    const { handleWriteExtra } = env.load('events/handlers/api/extra_write');
+    const tickets = env.load('events/handlers/api/tickets');
+    return async (mk, body) => {
+      const { ticket, promise } = tickets.createTicket(5000);
+      promise.catch(() => {});
+      await handleWriteExtra({ mk, blocks: '', body }, ticket);
+      await env.sync();
+      return promise;
+    };
+  };
+
+  // 先界面写入、后到额外模型的输出：额外模型在后，最终是“港口”
+  const a = await story({}, `你来到港口。${T('Edit', { 金币: '-=1' })}`);
+  await a.commit([{ edit: { 地点: '码头' } }], { mk: a.mk(2) });
+  await a.write_extra(a.mk(2), T('Edit', { 地点: '港口' }));
+  assert.equal(a.stat().地点, '港口');
+  await rewriter(a)(a.mk(2), '你来到港口，付了一枚金币。'); // 正文里的指令块从 1 个变成 0 个
+  assert.equal(a.stat().地点, '港口', '只改了正文的文字，两者的先后不能翻转');
+  assert.equal(a.stat().金币, 10, '正文里的指令去掉了，它的效果随之消失');
+  assert.deepEqual(plain(await a.replay()), plain(a.stat()));
+  const [op] = a.meta().ApiOps[a.mk(2)].ops;
+  assert.deepEqual(plain(_.pick(op, ['after', 'by', 'ax'])), { after: 1, by: 'body' });
+
+  // 先有额外模型的输出、后界面写入：界面在后，最终是“码头”；改写正文、重新解析后仍然如此
+  const b = await story({}, `你来到港口。${T('Edit', { 金币: '-=1' })}`);
+  await b.write_extra(b.mk(2), T('Edit', { 地点: '港口' }));
+  await b.commit([{ edit: { 地点: '码头' } }], { mk: b.mk(2) });
+  assert.equal(b.stat().地点, '码头');
+  assert.deepEqual(plain(_.pick(b.meta().ApiOps[b.mk(2)].ops[0], ['after', 'by', 'ax'])), {
+    after: 1,
+    by: 'body',
+    ax: true,
+  });
+  await rewriter(b)(b.mk(2), `新的正文${T('Edit', { 金币: '-=1' })}${T('Edit', { 金币: '-=1' })}`);
+  assert.equal(b.stat().地点, '码头');
+  assert.equal(b.stat().金币, 8);
+  await b.write_extra(b.mk(2), T('Edit', { 地点: '城门' }) + T('Edit', { 金币: '-=1' }));
+  assert.equal(b.stat().地点, '码头', '额外模型重新解析后，之前的界面写入仍排在它之后');
+  assert.deepEqual(plain(await b.replay()), plain(b.stat()));
+});
+
+test('指定楼层的写法统一：simulate、checkSchema、extra.run、extra.abort 接受楼层号、MK 或对象', async () => {
+  const env = await story({}, `你花了 3 金币。${T('Edit', { 金币: 7 })}`);
+  const Era = env.Era();
+  const mk0 = env.mk(0);
+  const probe = T('Edit', { 金币: '+=1' });
+  // 第 0 楼之后金币是 10，最新一楼之后是 7
+  for (const where of [0, mk0, { message_id: 0 }, { mk: mk0 }, -3]) {
+    assert.equal((await Era.simulate(probe, where)).stat.金币, 11, JSON.stringify(where));
+  }
+  assert.equal((await Era.simulate(probe, -1)).stat.金币, 8);
+  assert.equal((await Era.simulate(probe)).stat.金币, 8);
+  await assert.rejects(Era.simulate(probe, 99), /目标消息不存在/);
+  assert.equal((await Era.checkSchema(0)).registered, false);
+  await assert.rejects(Era.checkSchema(99), /目标消息不存在/);
+  await assert.rejects(Era.extra.run(99), /目标消息不存在/);
+  assert.doesNotThrow(() => Era.extra.abort(99));
+  assert.doesNotThrow(() => Era.extra.abort(-1));
+});
+
+test('B：“已执行的更新”也列出界面挂在这一楼上的写入，更新模型才知道它们已经计入变量', async () => {
+  const env = await story({}, '你在店里买了药水。');
+  await env.push_text(env.chat.length - 1, T('Edit', { 金币: '-=3' }));
+  await env.sync();
+  assert.equal(env.stat().金币, 7);
+  const { text } = await run(env, ['<VariableThink>无变化</VariableThink>']);
+  const executed = text[0].match(/<已执行的更新>\n([\s\S]*?)\n<\/已执行的更新>/)?.[1] ?? '';
+  assert.match(executed, /<VariableEdit>[\s\S]*"金币":"-=3"/);
+});
+
+test('写入事件 × 末楼正在生成：不把指令块追加到正在输出的正文里，改为旁路写入', async () => {
+  let generating = false;
+  const c = create_chat({
+    globals: { toastr: { warning() {}, error() {} }, builtin: { duringGenerating: () => generating } },
+  });
+  const api = c.host.load_src('events/handlers/api/handler');
+  c.send('assistant', `开场${T('Insert', { 金币: 10 })}`);
+  c.send('user', '继续');
+  c.send('assistant', '你走进店里');
+  await c.sync();
+  generating = true; // 最后一条回复正在重新生成
+  const before = c.chat.map(m => m.swipes[m.swipe_id]);
+  await api.updateByPath('金币', '+=5');
+  generating = false;
+  await c.sync();
+  assert.equal(c.stat().金币, 15);
+  assert.deepEqual(
+    c.chat.map(m => m.swipes[m.swipe_id]),
+    before,
+    '正文都没有被改动',
+  );
+  assert.deepEqual(plain(await c.replay()), plain(c.stat()));
+
+  // 没有在生成时照旧追加到正文
+  await api.updateByPath('金币', '+=1');
+  await c.sync();
+  assert.equal(c.stat().金币, 16);
+  assert.match(c.chat[2].swipes[0], /VariableEdit/);
 });

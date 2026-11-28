@@ -3,7 +3,8 @@
  * 日期：2026-11-25 至 2026-11-26
  * 目的：新增脚本设置“API写入不修改消息”；新增 <VariablePatch> 指令、宽松解析、只读字段与指令问题报告；修复第三批改动在审查中发现的问题；表达式 $expr 的稳定身份
  *       2026-11-26 旁路写入新增可选的来源 origin（Era.applyText 从文本解析的写入为 'text'），合并与压缩只在来源相同的写入之间进行
- *       2026-11-27 合并出的旁路写入指令标上 source: 'apiOps'（只用于报告，{{ERA-issues}} 不把它们当成主模型写的）；旁路写入可以是工具调用；带幂等键的写入不合并、不压缩
+ *       2026-11-27 合并出的旁路写入指令标上 source: 'api'（只用于报告，{{ERA-issues}} 不把它们当成主模型写的）；旁路写入可以是工具调用；带幂等键的写入不合并、不压缩
+ *       2026-11-28 旁路写入的位置把正文块与 <era_extra> 分开记（by: body、ax）；来源标记改为 api
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -16,7 +17,8 @@
  * - 重放只取决于数据是否存在，与设置无关，因此关闭设置后已有的写入仍然有效。
  * - 每次写入等价于一个指令块：钩子、schema、`$meta` 保护都照常生效。
  *
- * **位置**: 每条写入记录 `after`，即写入时该消息正文已有的指令数，重放时排在前 `after` 条正文指令之后。
+ * **位置**: 每条写入记录 `after`，即写入时该消息正文已有的指令块数（不含 `<era_extra>` 里的），重放时排在前 `after` 个正文指令块之后；
+ * 写入时已经有额外模型的输出的，另记 `ax`，重放时排在它之后。
  * 若一律排在最后，之后通过“继续”或手动编辑追加的指令会被旧的 API 写入覆盖。
  *
  * 注意：`core/key/mk.ts` 不能导入本文件，否则会形成循环依赖。
@@ -25,9 +27,9 @@
 
 import { API_OPS_PATH, ApiOp, ApiOpsRecord } from '../utils/constants';
 import { escapeEraData } from '../utils/data';
-import { updateEraMetaData } from '../utils/era_data';
+import { getEraData, updateEraMetaData } from '../utils/era_data';
 import { Logger } from '../utils/log';
-import { EraCommand, ParseOptions, parseCommandText } from '../utils/message';
+import { ApiPosition, EraCommand, ParseOptions, parseCommandText } from '../utils/message';
 import { traditionalToSimplified } from '../utils/string';
 import { parseCharacterMacros } from '../utils/text';
 import { isArithmeticExpression } from './crud/arithmetic';
@@ -36,16 +38,42 @@ import { readMessageKey } from './key/mk';
 
 const logger = new Logger();
 
+const OP_TAGS: Partial<Record<ApiOp['type'], string>> = {
+  insert: 'VariableInsert',
+  edit: 'VariableEdit',
+  delete: 'VariableDelete',
+  patch: 'VariablePatch',
+};
+
+/**
+ * 把挂在一条消息上的旁路写入写成指令块的样子，用来告诉更新模型“这些已经计入变量”。
+ * 工具调用不列（它产生的改动要执行了才知道）；重复 `n` 次的写入只列一次并注明次数。
+ */
+export function describeApiOps(mk: string): string {
+  const record: ApiOpsRecord | undefined = _.get(getEraData().meta, [API_OPS_PATH, mk]);
+  if (!record || !Array.isArray(record.ops)) return '';
+  return record.ops
+    .flatMap(op => {
+      const tag = OP_TAGS[op.type];
+      if (!tag) return [];
+      const times = (op.n ?? 1) > 1 ? `<!-- 执行了 ${op.n} 次 -->\n` : '';
+      // Patch 的数据本来就是操作数组；其余指令一个对象一块，和正文里的写法一样
+      const items = op.type === 'patch' ? [op.data] : _.castArray(op.data);
+      return items.map(item => `${times}<${tag}>\n${JSON.stringify(item)}\n</${tag}>`);
+    })
+    .join('\n');
+}
+
 /** 单条消息的写入数达到该值时提示作者，前端应对滑块之类的高频写入做防抖。 */
 const OPS_WARN_LENGTH = 300;
 
 /**
  * 创建一条写入。宏与繁转简在写入时处理并固定下来，重放时不再处理：
  * 否则改名会悄悄改变历史，名字里的引号也会让数据无法解析。
- * @param after 目标消息的指令块数，参见 `countCommandBlocks`。
+ * @param at 写入在目标消息里的位置，参见 `apiPositionOf`。
  * @throws 数据无法用 JSON 表示时抛出异常。
  */
-export function createApiOp(type: ApiOp['type'], data: any, after: number, toSimplified: boolean): ApiOp {
+export function createApiOp(type: ApiOp['type'], data: any, at: ApiPosition, toSimplified: boolean): ApiOp {
   const json = JSON.stringify(data);
   if (json === undefined) {
     throw new Error('写入的数据无法用 JSON 表示');
@@ -58,18 +86,18 @@ export function createApiOp(type: ApiOp['type'], data: any, after: number, toSim
   } catch {
     parsed = JSON.parse(json); // 名字里含有引号等字符
   }
-  return { type, data: parsed, after, by: 'block' };
+  return { type, data: parsed, ...positionFields(at) };
 }
 
 /**
  * 把一段文本中的指令解析成旁路写入（`origin: 'text'`），供 `Era.applyText` 使用。每个指令块是一条写入。
  * 数据在此时解析并固定下来（宏、繁转简都已处理），重放时不再解析文本。
- * @param after 目标消息的指令块数，参见 `countCommandBlocks`。
+ * @param at 写入在目标消息里的位置，参见 `apiPositionOf`。
  * @param options 目标聊天的解析方式：新聊天中思考块里的指令同样不执行。
  */
 export function createTextApiOps(
   text: string,
-  after: number,
+  at: ApiPosition,
   toSimplified: boolean,
   options?: ParseOptions,
 ): { ops: ApiOp[]; issues: { path: string; reason: string }[] } {
@@ -78,12 +106,18 @@ export function createTextApiOps(
   const ops = commands.map((command): ApiOp => ({
     type: command.type,
     data: command.data,
-    after,
-    by: 'block',
+    ...positionFields(at),
     origin: 'text',
   }));
   return { ops, issues: issues.map(({ path, reason }) => ({ path, reason })) };
 }
+
+/** 位置写进 `ApiOp` 的字段。 */
+const positionFields = (at: ApiPosition): Pick<ApiOp, 'after' | 'by' | 'ax'> => ({
+  after: at.after,
+  by: 'body',
+  ...(at.ax ? { ax: true as const } : {}),
+});
 
 /** 两条写入的来源是否相同；缺省为 `api`。 */
 const sameOrigin = (a: ApiOp, b: ApiOp): boolean => (a.origin ?? 'api') === (b.origin ?? 'api');
@@ -94,6 +128,18 @@ const sameOrigin = (a: ApiOp, b: ApiOp): boolean => (a.origin ?? 'api') === (b.o
  * 1.8 给写入加上提交编号后，有编号的记录改用“提交编号 + 展开 n 后的条内序号”，撤销前面的提交不会让后面的骰点平移。
  */
 const apiExprId = (execIndex: number): string => `api|${execIndex}`;
+
+/**
+ * 正文里的指令 `command` 是否排在旁路写入 `op` 之前。三种记法各按自己的方式解释：
+ * - `body`：正文指令看“正文块序号”；额外模型的输出整体排在前面还是后面，由写入时它是否已经存在决定；
+ * - `block`：正文与额外模型的输出合在一起的块序号；
+ * - 缺省：早期版本的计数。
+ */
+function precedes(command: EraCommand, op: ApiOp, legacy: number): boolean {
+  if (op.by === 'body') return command.source === 'extra' ? op.ax === true : (command.body ?? 0) < op.after;
+  if (op.by === 'block') return command.block! < op.after;
+  return legacy < op.after;
+}
 
 /** 把旁路写入与正文指令按位置合并。 */
 export function interleaveApiOps(text: EraCommand[], record?: ApiOpsRecord): EraCommand[] {
@@ -107,7 +153,14 @@ export function interleaveApiOps(text: EraCommand[], record?: ApiOpsRecord): Era
     commands.push(text[t++]);
   };
   for (const op of record.ops) {
-    while (t < text.length && (op.by === 'block' ? text[t].block! < op.after : legacy < op.after)) take();
+    if (op.by === 'body') {
+      // 两个条件都要满足：排在前 after 个正文块之后，写入时已有额外模型输出的还要排在它之后。
+      // 正文指令之间、正文与额外模型输出之间的先后保持原样，所以取“最后一条必须在它前面的指令”之后
+      const last = _.findLastIndex(text, command => precedes(command, op, legacy));
+      while (t <= last) take();
+    } else {
+      while (t < text.length && precedes(text[t], op, legacy)) take();
+    }
     for (let i = 0; i < (op.n ?? 1); i++) {
       // 每次都新建，避免多条指令共享同一份数据
       commands.push({
@@ -120,7 +173,7 @@ export function interleaveApiOps(text: EraCommand[], record?: ApiOpsRecord): Era
         origin: op.origin === 'text' ? 'text' : 'api',
         exprId: apiExprId(execIndex++),
         // 只用于报告：Era.applyText 的写入虽然按正文规则执行，也不是主模型这一轮写的
-        source: 'apiOps',
+        source: 'api',
       });
     }
   }
@@ -176,7 +229,16 @@ export function appendApiOp(record: ApiOpsRecord | undefined, op: ApiOp, compact
   for (let i = ops.length - 1; i >= 0; i--) {
     const prev = ops[i];
     // 带幂等键的写入要留着记录 key，不合并也不被取代
-    if (prev.after !== op.after || prev.by !== op.by || !sameOrigin(prev, op) || keyed(prev) || keyed(op)) break;
+    if (
+      prev.after !== op.after ||
+      prev.by !== op.by ||
+      !!prev.ax !== !!op.ax ||
+      !sameOrigin(prev, op) ||
+      keyed(prev) ||
+      keyed(op)
+    ) {
+      break;
+    }
     const prevEdit = edit && parseSimpleEdit(prev);
     if (edit?.plain && prevEdit && _.isEqual(prevEdit.path, edit.path)) {
       ops.splice(i, 1); // 被新的赋值覆盖

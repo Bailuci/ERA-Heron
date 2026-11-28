@@ -2,6 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-26 至 2026-11-27
  * 目的：测试：钩子的重入保护、变量结构诊断与一键修复、{{ERA-issues}}、聊天数据体积诊断、新卡状态栏旧楼不监听 era:writeDone；钩子里不 await 写入接口时没有未处理的 rejection
+ *       2026-11-28 注册接口的重入保护；带规划的玩家消息不让上一条 AI 楼重算
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 // 诊断与保护（1.7-3、1.7-6、1.7-7、1.7-8）。运行方式: node --test tests/era_diag.test.cjs
@@ -720,3 +721,56 @@ test('新卡的默认状态栏：最后一楼监听 era:writeDone，旧楼只显
   assert.deepEqual(old.listeners, []);
   assert.ok(old.rendered.includes('第2楼'));
 });
+
+test('重入保护：钩子、工具执行期间不能调用注册接口（注册会在稍后触发重算）', () => {
+  const { load } = create_env();
+  const reentry = load('core/reentry');
+  const { Era } = load('api/global');
+  const calls = {
+    'Era.registerSchema': () => Era.registerSchema({ safeParse: () => ({ success: true, data: {} }) }),
+    'Era.onBeforeApply': () => Era.onBeforeApply('x', () => {}),
+    'Era.onAfterApply': () => Era.onAfterApply('x', () => {}),
+    'Era.registerTool': () => Era.registerTool('t', { handler: () => [] }),
+    'Era.registerExprFn': () => Era.registerExprFn('f', a => a),
+    'Era.registerEntryFilter': () => Era.registerEntryFilter('e', () => undefined),
+  };
+  for (const [name, call] of Object.entries(calls)) {
+    assert.ok(reentry.GUARDED_ENTRIES.includes(name), name);
+    assert.throws(
+      () => reentry.runGuarded('钩子 测试 ', call),
+      new RegExp(`执行期间不能调用 ${name.replace(/\./g, '[.]')}`),
+    );
+  }
+  assert.equal(Era.hasHook('x'), false);
+  assert.equal(Era.hasTool('t'), false);
+  assert.equal(Era.hasSchema(), false);
+  // 保护之外照常注册
+  Era.onAfterApply('x', () => {}, { resync: false });
+  assert.equal(Era.hasHook('x'), true);
+});
+
+for (const hooked of [false, true]) {
+  test(`带规划的玩家消息只计算它自己：上一条 AI 楼不重算，它的指令问题不会再广播一次（${hooked ? '注册了钩子' : '没有钩子'}）`, async () => {
+    const env = create_env();
+    const T = (type, data) => `<Variable${type}>${JSON.stringify(data)}</Variable${type}>`;
+    let runs = 0;
+    if (hooked) env.load('api/global').Era.onAfterApply('测试.计数', () => void runs++, { resync: false });
+    env.send('assistant', T('Insert', { hp: 10 }));
+    await env.sync();
+    env.send('user', '攻击');
+    await env.sync();
+    env.send('assistant', `打${T('Edit', { 不存在: 1 })}`);
+    await env.sync();
+    const before = env.of('era:commandError').length;
+    const ran = runs;
+    assert.ok(before >= 1, '这一楼有一条没生效的指令');
+    env.send('user', `再攻击\n<era_plan>\n<PlanSummary>命中</PlanSummary>\n${T('Edit', { hp: '-=1' })}\n</era_plan>`);
+    await env.sync();
+    assert.equal(plain(env.stat()).hp, 9, '规划里的指令生效');
+    assert.equal(env.of('era:commandError').length, before, '上一条 AI 楼没有被重算');
+    assert.equal(runs, ran, '钩子没有为上一条 AI 楼再执行一次');
+    // 从未计算过的 AI 楼仍然会补上：钩子在它之后才注册的情形由 widenRecalcForHooks 的第二条规则负责
+    await env.sync(true);
+    assert.equal(plain(env.stat()).hp, 9, '完全重算后结果相同');
+  });
+}

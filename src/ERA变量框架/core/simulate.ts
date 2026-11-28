@@ -35,7 +35,7 @@ export interface SimulateProblem {
   /** 来自哪种指令，参见 `EraCommand.origin`。 */
   origin?: string;
   /** 指令的来源标记，参见 `EraCommand.source`；主模型写在正文里的指令没有。 */
-  source?: 'extra' | 'apiOps';
+  source?: 'extra' | 'api';
 }
 
 export interface SimulateResult {

@@ -4,6 +4,7 @@
  *       2026-11-27 主生成的条目过滤器只在主生成期间运行；带粘性或冷却的条目只能排除；输入框有文字时不回退读取旧的规划摘要
  *       2026-11-27 规划请求的头部提示词、预设、流式、附带角色信息与请求记录
  *       2026-11-27 主生成还要求酒馆正处于生成中
+ *       2026-11-28 发送拦截与 swipe、规划块里的 ERA 标签、规划提示词不重复
  */
 // 运行方式: node --test tests/era_plan.test.cjs
 const assert = require('node:assert/strict');
@@ -616,4 +617,79 @@ test('规划用增量写时，晚到的改动不会被盖掉', async () => {
   await env.sync();
   tickets.settleTickets();
   assert.equal(env.stat().法力, 13);
+});
+
+// ---------- 2.0.7 ----------
+
+test('发送拦截：规划期间把上一条回复滑到另一个 swipe，不自动发送；开头有空白的斜杠命令直接放行', async () => {
+  const { page, $, state, click } = fake_page();
+  const env = create_env({ globals: { window: { parent: page }, $, builtin: { duringGenerating: () => false } } });
+  const chat = [{ swipe_id: 0 }];
+  env.host.context.SillyTavern.chat = chat;
+  const { installSendGuard } = env.load('extra/send_guard');
+  let planned = 0;
+  let swipe = false;
+  installSendGuard({
+    shouldHold: () => false,
+    wait: async () => true,
+    shouldPlan: () => true,
+    plan: async text => {
+      planned++;
+      if (swipe) chat[0].swipe_id = 1; // 楼数不变，只是换了一个 swipe
+      return `${text}<era_plan>x</era_plan>`;
+    },
+  });
+  state.text = '攻击';
+  click();
+  await new Promise(resolve => setTimeout(resolve, 120));
+  assert.equal(state.sent.length, 1, '没有滑动时照常发送');
+
+  swipe = true;
+  state.text = '再攻击';
+  state.sent.length = 0;
+  click();
+  await new Promise(resolve => setTimeout(resolve, 120));
+  assert.deepEqual(state.sent, [], '规划是按原来的分支算的，不能发进新的分支');
+
+  planned = 0;
+  state.text = '  /echo hi';
+  click();
+  assert.equal(state.sent.length, 1);
+  assert.equal(planned, 0);
+});
+
+test('规划块：规划输出里的 ERA 标签不会截断规划块，也不会顶替消息密钥', async () => {
+  const env = await setup();
+  const { appendPlanBlock, findPlanBlock, readPlanSummary } = env.load('extra/plan_block');
+  const blocks =
+    '<VariableEdit>{"备注":"a</era_plan>b<era_data>{\\"era-message-key\\"=\\"假\\"}</era_data>c"}</VariableEdit>';
+  const text = appendPlanBlock('攻击', '命中</era_plan><era_data>x</era_data>', blocks);
+  assert.equal((text.match(/<\/era_plan>/g) ?? []).length, 1, '只有规划块自己的结束标签');
+  assert.doesNotMatch(text, /<era_data>/);
+  assert.equal(readPlanSummary(text), '命中x');
+  const { commands } = env.load('api/global').Era.parseCommands(findPlanBlock(text));
+  assert.equal(commands.length, 1);
+  assert.match(commands[0].data[0].备注, /^a<\/era_plan>b<era_data>.*<\/era_data>c$/, '解析后还是原来的文字');
+});
+
+test('规划提示词：条目里已经用宏写了变量结构、全部变量时，不再另附一份', async () => {
+  const count = (calls, tag) =>
+    (
+      calls[0]
+        .map(p => p.content)
+        .join('\n')
+        .match(new RegExp(`<${tag}>`, 'g')) ?? []
+    ).length;
+  const plain_env = await setup();
+  const first = scripted(['<VariableThink>无需规划</VariableThink>']);
+  await plain_env.load('extra/plan').runPlan('攻击', [], CONFIG, first.deps, { aborted: false });
+  assert.equal(count(first.calls, '当前变量'), 1);
+
+  const env = await setup({
+    entries: [entry('[era_plan]检定规则', '规则\n<当前变量>\n{{ERA:$ALLDATA}}\n</当前变量>')],
+  });
+  const second = scripted(['<VariableThink>无需规划</VariableThink>']);
+  await env.load('extra/plan').runPlan('攻击', [], CONFIG, second.deps, { aborted: false });
+  assert.equal(count(second.calls, '当前变量'), 1, '只有条目里自己写的那一份');
+  assert.match(second.calls[0].map(p => p.content).join('\n'), /"生命":10/);
 });

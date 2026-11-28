@@ -27,7 +27,7 @@ export interface CommandIssue {
   /** 来自哪种指令；无法解析的指令块没有。 */
   origin?: 'text' | 'api' | 'hook' | 'tool';
   /** 指令的来源标记，参见 `EraCommand.source`；主模型写在正文里的指令没有。 */
-  source?: 'extra' | 'apiOps';
+  source?: 'extra' | 'api';
 }
 
 export function reportIssue(

@@ -3,6 +3,7 @@
  * 日期：2026-11-26 至 2026-11-27
  * 目的：新增条目过滤器 Era.registerEntryFilter：分步更新按目标楼的状态选择和改写世界书条目
  *       2026-11-27 过滤器在重入保护下调用：执行期间调用写入接口（Era.commit、Era.extra.run 等）时忽略它的结果并记入 warnings
+ *       2026-11-28 切换角色卡的过渡态里注册的过滤器归到当前角色卡
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -14,7 +15,7 @@
  */
 'use strict';
 
-import { getCurrentOwner } from '../api/schema_registry';
+import { getCurrentOwner, isOwnedByCurrent } from '../api/schema_registry';
 import { runGuarded } from '../core/reentry';
 import { Logger } from '../utils/log';
 
@@ -85,9 +86,9 @@ export function dropEntryFilter(filter: RegisteredEntryFilter): boolean {
 /** 当前角色卡生效的过滤器，按名字排序；不属于当前角色卡的遗留过滤器会被丢弃。 */
 export function getActiveEntryFilters(): RegisteredEntryFilter[] {
   const owner = getCurrentOwner();
-  if (filters.some(filter => filter.owner !== owner)) {
+  if (filters.some(filter => !isOwnedByCurrent(filter, owner))) {
     logger.warn('getActiveEntryFilters', '当前角色卡与注册条目过滤器时不同，已自动注销遗留的过滤器。');
-    filters = filters.filter(filter => filter.owner === owner);
+    filters = filters.filter(filter => isOwnedByCurrent(filter, owner));
   }
   return [...filters].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
 }

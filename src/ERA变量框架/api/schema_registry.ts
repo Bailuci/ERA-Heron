@@ -2,6 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-25
  * 目的：新增可选的变量结构 schema 校验与全局接口 Era；修复 schema 校验在审查与实测中发现的问题；新增更新钩子 Era.onBeforeApply / Era.onAfterApply；修复第二批改动在审查中发现的问题
+ *       2026-11-28 读不到角色卡时的标识与归属判断（isOwnedByCurrent）
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -50,17 +51,33 @@ export interface ActiveSchema {
 
 let active: ActiveSchema | null = null;
 
-/** 获取当前角色卡的标识，用于把 schema 和钩子绑定到注册它们的角色卡上。 */
+/** 读不到当前角色卡时的标识：切换角色卡的过渡态里酒馆的上下文还没有就绪，或者没有打开任何角色卡。 */
+export const UNKNOWN_OWNER = 'unknown';
+
+/** 获取当前角色卡的标识，用于把 schema 和钩子绑定到注册它们的角色卡上；读不到时是 `UNKNOWN_OWNER`。 */
 export function getCurrentOwner(): string {
   try {
     // 群聊中 characterId 会随正在发言的成员变化，因此以群组为准
     if (SillyTavern.groupId) return `group:${SillyTavern.groupId}`;
     const id = SillyTavern.characterId;
     const avatar = (SillyTavern.characters as any)?.[id as any]?.avatar;
-    return String(avatar ?? id);
+    const owner = avatar ?? id;
+    return owner === undefined || owner === null || owner === '' ? UNKNOWN_OWNER : String(owner);
   } catch {
-    return 'unknown';
+    return UNKNOWN_OWNER;
   }
+}
+
+/**
+ * 一项注册（schema、钩子、工具、公式函数、条目过滤器）是否仍然属于当前角色卡。
+ * - 现在读不到角色卡：无法判断，先留着；
+ * - 注册时读不到角色卡（脚本在切换角色卡的过渡态里注册）：归到现在这张卡名下。
+ *   以前这种注册记在 `unknown` 名下，上下文就绪后被当成“上一张卡遗留的”清掉。
+ */
+export function isOwnedByCurrent(record: { owner: string }, current: string = getCurrentOwner()): boolean {
+  if (current === UNKNOWN_OWNER) return true;
+  if (record.owner === UNKNOWN_OWNER) record.owner = current;
+  return record.owner === current;
 }
 
 /**
@@ -70,7 +87,7 @@ export function getCurrentOwner(): string {
  * （注册它的脚本被卸载却没有注销），schema 会被自动丢弃，避免它去改写其他角色卡的变量。
  */
 export function getActiveSchema(): ActiveSchema | null {
-  if (active && active.owner !== getCurrentOwner()) {
+  if (active && !isOwnedByCurrent(active)) {
     logger.warn('getActiveSchema', '当前角色卡与注册 schema 时不同，已自动注销遗留的 schema。');
     active = null;
   }

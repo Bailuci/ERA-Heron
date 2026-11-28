@@ -3,6 +3,7 @@
  * 日期：2026-11-25 至 2026-11-27
  * 目的：新增 <VariablePatch> 指令、宽松解析、只读字段与指令问题报告；新增额外模型分步更新、等待式提交、试算与变量结构说明；修复第三批改动在审查中发现的问题；发给 AI 的提示词在监听器内直接替换宏，不再依赖事件队列的回调；宏的判断不区分大小写、允许空格；从发给 AI 的提示词中去掉状态栏占位符（没有更新规则的旧卡缺少对应的隐藏正则）
  *       2026-11-27 占位符的剥离抽成对单段文本的 stripStatusPlaceholderText（macro/placeholder.ts），与分步更新的提示词共用；旧卡的提示词同样去掉 <era_plan>
+ *       2026-11-28 带图片的消息同样去掉 <era_extra>、<era_plan>
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 import { isQueueIdle, waitForQueueIdle } from '../events/queue';
@@ -240,12 +241,19 @@ export const handleGenerateAfterData = (
   }
 
   // 额外模型的输出、正文前规划块不发给剧情模型（规划摘要另行注入）；旧卡的隐藏正则不认识它们的标签
+  const stripEraBlocks = (text: string): string => {
+    if (text.includes('<era_extra>')) text = stripExtraBlock(text);
+    if (text.includes('<era_plan>')) text = stripPlanBlock(text);
+    return text;
+  };
   for (const message of generate_data.prompt) {
-    if (typeof message.content === 'string' && message.content.includes('<era_extra>')) {
-      message.content = stripExtraBlock(message.content);
-    }
-    if (typeof message.content === 'string' && message.content.includes('<era_plan>')) {
-      message.content = stripPlanBlock(message.content);
+    if (typeof message.content === 'string') {
+      message.content = stripEraBlocks(message.content);
+    } else if (Array.isArray(message.content)) {
+      // 带图片的消息：正文在各个 text 段里
+      for (const part of message.content as any[]) {
+        if (part && typeof part.text === 'string') part.text = stripEraBlocks(part.text);
+      }
     }
   }
   stripStatusPlaceholder(generate_data.prompt, settings.value.特殊符号值, settings.value.在ai消息尾部生成特殊符号);

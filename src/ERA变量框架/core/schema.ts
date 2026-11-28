@@ -49,7 +49,7 @@ export interface SchemaRejection {
   /** 来自哪种指令；由 afterApply 钩子引起时没有。 */
   origin?: 'text' | 'api' | 'hook' | 'tool';
   /** 指令的来源标记，参见 `EraCommand.source`；主模型写在正文里的指令没有。 */
-  source?: 'extra' | 'apiOps';
+  source?: 'extra' | 'api';
 }
 
 /** 校验时的可选行为。 */

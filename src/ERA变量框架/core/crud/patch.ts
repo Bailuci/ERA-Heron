@@ -3,6 +3,7 @@
  * 日期：2026-11-25
  * 目的：新增 <VariablePatch> 指令、宽松解析、只读字段与指令问题报告；修复第三批改动在审查中发现的问题；修复复审中发现的问题
  *       2026-11-27 新聊天里 VariablePatch 不能改动已有的 $meta
+ *       2026-11-28 新聊天：remove、用别的类型的值 replace 时检查其中受保护的内容；move / copy 不能改掉目标的 $meta
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -22,7 +23,7 @@
 import { escapeEraData, escapeEraKey, sanitizeArrays, unescapeEraData } from '../../utils/data';
 import { mergeReserved } from '../schema';
 import { resolveArithmetic } from './arithmetic';
-import { CommandIssue, isReadonlyKey, reportIssue } from './diagnostics';
+import { CommandIssue, findProtectedInside, isReadonlyKey, reportIssue } from './diagnostics';
 import { applyInsertAtLevel } from './insert/insert';
 
 const FORBIDDEN_KEYS = ['__proto__', 'prototype', 'constructor'];
@@ -180,7 +181,13 @@ function upsert(
     let merged = _.isPlainObject(old) && _.isPlainObject(value) ? mergeReserved(old, value) : value;
     if (!options.allowReadonly) merged = keepReadonly(old, merged, target.path, issues);
     assertReplaceable(old, merged);
-    if (options.strict && !options.raw && changesMeta(old, merged)) throw new PatchFailure(META_LOCKED);
+    if (options.strict) {
+      // 移动、复制过来的值（raw）同样不能改掉目标上已有的 $meta
+      if (changesMeta(old, merged)) throw new PatchFailure(META_LOCKED);
+      // 用标量或数组换掉一个对象（或用别的值换掉数组）时，原来的内容整个丢掉：其中不能有受保护的内容
+      const wholesale = _.isPlainObject(old) ? !_.isPlainObject(merged) : Array.isArray(old) && !Array.isArray(merged);
+      if (wholesale) assertDroppable(old, options.allowReadonly);
+    }
     writeUpdate(stat, target.keys, merged, log);
     return;
   }
@@ -283,10 +290,22 @@ function insertNew(
   }
 }
 
-function remove(stat: any, segments: string[], log: any[]): any {
+/** 整个丢掉 `node`（删除，或用别的类型的值覆盖）之前：它自己和它里面都不能有受保护的内容。 */
+function assertDroppable(node: any, allowReadonly: boolean): void {
+  const own = _.get(node, ['$meta', 'necessary']);
+  if (own === 'self' || own === 'all') throw new PatchFailure('受 $meta.necessary 保护，不能删除');
+  const reason = findProtectedInside(node, !allowReadonly);
+  if (reason) throw new PatchFailure(reason);
+}
+
+/**
+ * @param drop 值是不是真的丢掉了（`remove`）。移动（`move`）只是换个位置，不检查里面受保护的内容。
+ */
+function remove(stat: any, segments: string[], log: any[], drop?: PatchOptions): any {
   const target = locate(stat, segments);
   if (!target.exists) throw new PatchFailure('路径不存在');
   assertRemovable(stat, target.keys);
+  if (drop?.strict) assertDroppable(getAt(stat, target.keys), drop.allowReadonly);
   const value = _.cloneDeep(getAt(stat, target.keys));
   if (Array.isArray(target.parent)) {
     if (!isIndex(target.last)) throw new PatchFailure('数组的位置必须是数字');
@@ -359,7 +378,7 @@ function applyOne(stat: any, raw: any, log: any[], issues: CommandIssue[], optio
       return;
     }
     case 'remove':
-      remove(stat, parsePatchPath(raw.path), log);
+      remove(stat, parsePatchPath(raw.path), log, options);
       return;
     case 'move':
     case 'copy': {

@@ -8,6 +8,7 @@
  *       2026-11-28 ERA_FEATURES 登记 sync、extraAuto；版本号 2.0.4
  *       2026-11-28 版本号 2.0.5
  *       2026-11-28 ERA_FEATURES 登记 hookSource；版本号 2.0.6
+ *       2026-11-28 ApiOp 新增 by: body 与 ax；来源标记统一为 api；版本号 2.0.7
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -45,7 +46,7 @@
 import { z } from 'zod';
 
 /** ERA-Heron（基于 ERA 变量框架二次开发）的版本号。 */
-export const ERA_VERSION = '2.0.6';
+export const ERA_VERSION = '2.0.7';
 
 /**
  * 当前版本提供的功能，供角色卡用 `Era.features.includes(...)` 判断，参见 `Era.features`。
@@ -258,8 +259,16 @@ export interface ApiOp {
   data: any;
   /** 写入时该消息正文的指令数；重放时排在前 `after` 条正文指令之后。 */
   after: number;
-  /** `block` 表示 `after` 按指令块计数（含无法解析的），因此不受解析方式影响；缺省是早期版本的计数方式。 */
-  by?: 'block';
+  /**
+   * `after` 的计数方式：
+   * - `body`（2.0.7 起）：正文里的指令块数，不含 `<era_extra>` 里的；是否排在额外模型的输出之后另由 `ax` 记录；
+   * - `block`：全部指令块数（正文与 `<era_extra>` 合在一起，含无法解析的）；
+   * - 缺省：早期版本的计数方式。
+   * 旧的记录按它当时的方式解释，不会被改写。
+   */
+  by?: 'block' | 'body';
+  /** `by: 'body'` 时：写入时这一楼已经有额外模型的输出，重放时排在它之后。 */
+  ax?: true;
   /** 连续重复次数，缺省为 1。 */
   n?: number;
   /**
@@ -482,8 +491,8 @@ export interface SchemaErrorItem {
   message: string;
   /** 来自哪种指令：正文、旁路写入，或 beforeApply 钩子追加的指令；由 afterApply 钩子的修改引起时没有。 */
   origin?: 'text' | 'api' | 'hook' | 'tool';
-  /** 只用于报告：`'extra'` 额外模型的输出，`'apiOps'` 旁路写入；主模型写在正文里的指令没有。 */
-  source?: 'extra' | 'apiOps';
+  /** 只用于报告：`'extra'` 额外模型的输出，`'api'` 旁路写入；主模型写在正文里的指令没有。 */
+  source?: 'extra' | 'api';
 }
 
 /**
@@ -525,8 +534,8 @@ export interface CommandErrorPayload {
     reason: string;
     /** 来自哪种指令：正文、旁路写入，或 beforeApply 钩子追加的指令；无法解析的块没有。 */
     origin?: 'text' | 'api' | 'hook' | 'tool';
-    /** 只用于报告：`'extra'` 额外模型的输出，`'apiOps'` 旁路写入；主模型写在正文里的指令没有。 */
-    source?: 'extra' | 'apiOps';
+    /** 只用于报告：`'extra'` 额外模型的输出，`'api'` 旁路写入；主模型写在正文里的指令没有。 */
+    source?: 'extra' | 'api';
   }[];
 }
 

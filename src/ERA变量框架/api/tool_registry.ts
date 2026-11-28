@@ -4,6 +4,7 @@
  *       2026-11-27 公式函数不能叫 call（求值器保留给存成变量的公式）
  *       2026-11-27 因未注册而失败过的名字可以取出，记进元数据（跨页面会话，注册后完全重算）
  *       2026-11-28 取聊天 ID 出错时不让注册接口中断
+ *       2026-11-28 切换角色卡的过渡态里注册的工具、公式函数归到当前角色卡
  */
 /**
  * @file ERA 变量框架 - 工具与自定义公式函数的注册表
@@ -26,7 +27,7 @@ import {
 import { runGuarded } from '../core/reentry';
 import { Logger } from '../utils/log';
 import { hasActiveHooks } from './hook_registry';
-import { getCurrentOwner } from './schema_registry';
+import { getCurrentOwner, isOwnedByCurrent } from './schema_registry';
 
 const logger = new Logger();
 
@@ -89,10 +90,10 @@ let exprFns: RegisteredExprFn[] = [];
 /** 丢弃不属于当前角色卡的注册。 */
 function purge() {
   const owner = getCurrentOwner();
-  if (tools.some(tool => tool.owner !== owner) || exprFns.some(fn => fn.owner !== owner)) {
+  if (tools.some(tool => !isOwnedByCurrent(tool, owner)) || exprFns.some(fn => !isOwnedByCurrent(fn, owner))) {
     logger.warn('purge', '当前角色卡与注册时不同，已自动注销遗留的工具与公式函数。');
-    tools = tools.filter(tool => tool.owner === owner);
-    exprFns = exprFns.filter(fn => fn.owner === owner);
+    tools = tools.filter(tool => isOwnedByCurrent(tool, owner));
+    exprFns = exprFns.filter(fn => isOwnedByCurrent(fn, owner));
   }
 }
 

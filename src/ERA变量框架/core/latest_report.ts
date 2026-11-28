@@ -47,10 +47,10 @@ export interface FloorIssue {
   /** 来自哪种指令：正文、旁路写入或钩子；无法解析的块、afterApply 钩子引起的拦截没有。 */
   origin?: 'text' | 'api' | 'hook' | 'tool';
   /**
-   * 指令的来源标记：`extra` 是 `<era_extra>` 中额外模型的输出，`apiOps` 是旁路写入（含 `Era.applyText`）。
+   * 指令的来源标记：`extra` 是 `<era_extra>` 中额外模型的输出，`api` 是旁路写入（含 `Era.applyText`）。
    * 主模型写在正文里的指令没有。`origin` 决定规则（例如下划线只读），这个字段只决定报告给谁。
    */
-  source?: 'extra' | 'apiOps';
+  source?: 'extra' | 'api';
 }
 
 /** 某一楼计算后的报告。 */

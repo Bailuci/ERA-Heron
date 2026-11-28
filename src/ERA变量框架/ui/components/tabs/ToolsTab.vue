@@ -2,6 +2,7 @@
   修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增（取代 RightRailContent/ActionButtons.vue）。
   日期：2026-11-26
   目的：重新设计面板：维护工具（完全重算、重算最后一楼、回滚、快速初始化、更新旧卡的规则），显示进行中与完成/失败反馈，危险操作两步确认
+          2026-11-28 补全快速初始化的说明
   原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
 -->
 <template>
@@ -74,7 +75,7 @@
         <div class="era-card__title">ERA 快速初始化</div>
         <p class="era-hint">向当前角色卡加入 ERA 的基础配置，已存在的不会重复添加：</p>
         <ul class="ttab-list">
-          <li>局部正则“ERA 数据隐藏正则”：隐藏聊天里的数据标签；</li>
+          <li>四条隐藏用的局部正则（数据、元数据、思考块、状态栏占位符）：不让这些标签显示出来或发给 AI；</li>
           <li>局部正则“ERA 状态栏模板”：把占位符替换成状态栏；</li>
           <li>主世界书条目“ERA 变量操作规则”：告诉 AI 如何写变量指令；</li>
           <li>主世界书条目“ERA 变量意图说明”：在这里写每个变量的用途。</li>

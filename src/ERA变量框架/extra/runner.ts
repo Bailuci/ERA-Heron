@@ -5,6 +5,7 @@
  *       2026-11-27 “已执行的更新”按当前聊天的解析方式取真正会执行的指令块，与 hasOwnCommands 和同步一致；额外模型输出按“思考标签”设置遮蔽
  *       2026-11-28 问题说明改用 describeIssue
  *       2026-11-28 各组的输出合在一起再试算一次
+ *       2026-11-28 “已执行的更新”一并列出挂在这一楼上的旁路写入
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -17,6 +18,7 @@
 
 import { createExtraSimulator, findMessageByMk, findSwipeByMk } from '../core/simulate';
 import { Logger } from '../utils/log';
+import { describeApiOps } from '../core/api_ops';
 import { describeIssue } from '../core/crud/diagnostics';
 import { extractCommandBlocks, extractExecutedBlocks, getMessageContent, stripExtraBlock } from '../utils/message';
 import { ExtraConfig } from './config';
@@ -231,7 +233,11 @@ export async function runExtra(
   if (signal.aborted) return end('aborted');
   if (entries.length === 0) return end('no_entries');
   // 只列出真正执行了的指令：新聊天里思考块中的、外层标签外的指令没有执行，不能告诉模型“已经计入”
-  const executed = extractExecutedBlocks(stripExtraBlock(getMessageContent(msg) ?? ''));
+  // 界面挂在这一楼上的写入（`Era.commit`、`Era.applyText`）同样已经计入变量：一起列出，否则更新模型会照着剧情再扣一次
+  const executed = _.compact([
+    extractExecutedBlocks(stripExtraBlock(getMessageContent(msg) ?? '')),
+    describeApiOps(mk),
+  ]).join('\n');
 
   // 各分组互不依赖，同时请求；写入时按分组名的顺序拼接，结果与返回的先后无关
   const outputs = await Promise.all(

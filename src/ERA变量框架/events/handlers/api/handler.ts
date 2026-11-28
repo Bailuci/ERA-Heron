@@ -6,6 +6,7 @@
  *       2026-11-27 atomic 预检与实际写入使用相同的压缩参数，含 $expr 的写入预检与落盘的骰点一致；Era.commit 可以写工具调用 { call }；幂等键 key
  *       2026-11-28 写入事件追加指令块时保留正文里的宏；问题说明不重复路径
  *       2026-11-28 追加到正文不会执行时改为旁路写入
+ *       2026-11-28 旁路写入的位置改用 apiPositionOf
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -41,7 +42,8 @@ import { J, unescapeEraData } from '../../../utils/data';
 import { getEraData, removeMetaFields, settings, updateEraMetaData } from '../../../utils/era_data';
 import { Logger } from '../../../utils/log';
 import {
-  countCommandBlocks,
+  ApiPosition,
+  apiPositionOf,
   extractExecutedBlocks,
   findLastAiMessage,
   getRawMessageContent,
@@ -176,6 +178,15 @@ async function performApiWrite(job: ApiWriteJob) {
     return;
   }
 
+  // 末楼正在生成（流式输出、重新生成）时，追加到它正文里的指令块会被后面的输出覆盖掉：改为旁路写入，
+  // 由它按“正在输出的消息除外”的规则选目标
+  const generating = typeof builtin !== 'undefined' && !!builtin.duringGenerating?.();
+  if (generating && Number(lastAiMessage.message_id) === Number(getChatMessages(-1)?.[0]?.message_id)) {
+    logger.warn('performApiWrite', '最后一条 AI 消息正在生成，追加到正文的指令块会被覆盖，改为旁路写入');
+    await performApiOp(job);
+    return;
+  }
+
   // 必须取未展开宏的原文：getMessageContent 会把 {{user}}、{{char}} 换成当前的名字，写回去就固定下来了
   const originalContent = getRawMessageContent(lastAiMessage);
   const newContent = originalContent + block;
@@ -218,7 +229,7 @@ async function performApiOp(job: ApiWriteJob) {
     const op = createApiOp(
       OP_TYPES[job.blockTag],
       job.blockContent,
-      countCommandBlocks(target.msg),
+      apiPositionOf(target.msg),
       settings.value.繁体转简体,
     );
     const compact = getActiveSchema() === null && !hasActiveExtensions();
@@ -263,8 +274,8 @@ const isTextCommit = (detail: any): detail is TextCommitDetail =>
   !!detail && typeof detail.text === 'string' && detail.operations === undefined;
 
 /** 把 `Era.applyText` 的文本解析成旁路写入；没有可以执行的指令时抛出异常，`atomic` 时有无法解析的块也抛出。 */
-function textToApiOps(detail: TextCommitDetail, after: number): ApiOp[] {
-  const { ops, issues } = createTextApiOps(detail.text, after, settings.value.繁体转简体, getCurrentParseOptions());
+function textToApiOps(detail: TextCommitDetail, at: ApiPosition): ApiOp[] {
+  const { ops, issues } = createTextApiOps(detail.text, at, settings.value.繁体转简体, getCurrentParseOptions());
   if (detail.atomic && issues.length > 0) throw new Error(`提交被放弃: ${describeIssue(issues[0])}`);
   if (ops.length === 0) {
     throw new Error(issues.length > 0 ? `文本中的指令无法解析: ${issues[0].reason}` : '文本中没有可以执行的指令');
@@ -273,7 +284,7 @@ function textToApiOps(detail: TextCommitDetail, after: number): ApiOp[] {
 }
 
 /** 把 `era:commit` 的写入转换成旁路写入。 */
-export function toApiOps(operations: CommitDetail['operations'], after: number): ApiOp[] {
+export function toApiOps(operations: CommitDetail['operations'], at: ApiPosition): ApiOp[] {
   const list = _.compact(_.castArray(operations));
   if (list.length === 0) throw new Error('没有要写入的内容');
   return list.map(operation => {
@@ -287,9 +298,9 @@ export function toApiOps(operations: CommitDetail['operations'], after: number):
       if (!_.isPlainObject(call) || typeof call.name !== 'string' || call.name === '') {
         throw new Error('{ call } 必须是 { name: 工具名, args?: 参数 }');
       }
-      return createApiOp('call', { name: call.name, args: call.args ?? {} }, after, false);
+      return createApiOp('call', { name: call.name, args: call.args ?? {} }, at, false);
     }
-    return createApiOp(type as ApiOp['type'], data, after, settings.value.繁体转简体);
+    return createApiOp(type as ApiOp['type'], data, at, settings.value.繁体转简体);
   });
 }
 
@@ -302,8 +313,8 @@ export async function commit(detail: CommitDetail | TextCommitDetail, ticket?: A
     if (key !== undefined && (typeof key !== 'string' || key === '')) throw new Error('key 必须是非空字符串');
     const prepare = (msg: any) =>
       (isTextCommit(detail)
-        ? textToApiOps(detail, countCommandBlocks(msg))
-        : toApiOps((detail as CommitDetail)?.operations, countCommandBlocks(msg))
+        ? textToApiOps(detail, apiPositionOf(msg))
+        : toApiOps((detail as CommitDetail)?.operations, apiPositionOf(msg))
       ).map(op => (key === undefined ? op : { ...op, key }));
     const hasKey = (meta: any, mk: string) =>
       key !== undefined && _.some(_.get(meta, [API_OPS_PATH, mk, 'ops']), (op: ApiOp) => op.key === key);

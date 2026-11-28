@@ -2,6 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-26 至 2026-11-27
  * 目的：测试事件合并、事件队列的异常恢复、发给 AI 的提示词中的宏替换时机、用户消息中的指令；提示词中的状态栏占位符
+ *       2026-11-28 带图片的消息去掉 ERA 的块
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 // 事件层测试：合并规则、队列、宏替换与 MESSAGE_SENT。用内存中的假聊天驱动真实源码。
@@ -349,4 +350,27 @@ test('占位符：自定义 特殊符号值 按字面匹配，只在追加功能
   const prompt = [{ role: 'assistant', content: 'a \n b' }];
   stripStatusPlaceholder(prompt, ' ');
   assert.equal(prompt[0].content, 'a \n b');
+});
+
+test('带图片的消息（正文在数组的 text 段里）：同样去掉 <era_extra> 与 <era_plan>', async () => {
+  const env = prompt_env();
+  const data = {
+    prompt: [
+      {
+        role: 'assistant',
+        content: [
+          { type: 'text', text: '正文\n<era_extra>\n<VariableEdit>{"a":1}</VariableEdit>\n</era_extra>' },
+          { type: 'image_url', image_url: { url: 'data:image/png;base64,AA' } },
+        ],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: '攻击\n<era_plan>\n<PlanSummary>命中</PlanSummary>\n</era_plan>' }],
+      },
+    ],
+  };
+  await env.host.load_src('macro/parser').handleGenerateAfterData(data, false);
+  assert.equal(data.prompt[0].content[0].text, '正文');
+  assert.equal(data.prompt[0].content[1].type, 'image_url');
+  assert.equal(data.prompt[1].content[0].text, '攻击');
 });

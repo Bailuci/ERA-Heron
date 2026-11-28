@@ -11,6 +11,9 @@ const _ = require('lodash');
 const z = require('zod');
 const { create_chat, plain } = require('./chat.cjs');
 
+/** 楼里还没有任何指令块时的写入位置。 */
+const AT0 = { after: 0, ax: false };
+
 function api_chat(options = {}) {
   const c = create_chat({ ...options, settings: { API写入不修改消息: true, ...options.settings } });
   const handler = c.host.load_src('events/handlers/api/handler');
@@ -23,16 +26,16 @@ test('createApiOp：与调用者的对象脱离，宏在写入时固定，名字
   const { host } = create_chat();
   const { createApiOp } = host.api_ops;
   const data = { a: { b: 1 } };
-  const op = createApiOp('edit', data, 0, false);
+  const op = createApiOp('edit', data, AT0, false);
   data.a.b = 2;
-  assert.deepEqual(plain(op), { ...edit({ a: { b: 1 } }), by: 'block' });
-  assert.equal(createApiOp('edit', { n: '{{user}}' }, 0, false).data.n, 'User');
+  assert.deepEqual(plain(op), { ...edit({ a: { b: 1 } }), by: 'body' });
+  assert.equal(createApiOp('edit', { n: '{{user}}' }, AT0, false).data.n, 'User');
   host.context.SillyTavern.name1 = '引"号';
-  assert.equal(createApiOp('edit', { n: '{{user}}' }, 0, false).data.n, '{{user}}');
+  assert.equal(createApiOp('edit', { n: '{{user}}' }, AT0, false).data.n, '{{user}}');
   const cyclic = {};
   cyclic.self = cyclic;
-  assert.throws(() => createApiOp('edit', cyclic, 0, false));
-  assert.throws(() => createApiOp('edit', undefined, 0, false));
+  assert.throws(() => createApiOp('edit', cyclic, AT0, false));
+  assert.throws(() => createApiOp('edit', undefined, AT0, false));
 });
 
 test('interleaveApiOps：无记录时返回原数组；按位置插入且保持写入顺序；重复写入互不共享', () => {

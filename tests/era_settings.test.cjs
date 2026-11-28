@@ -105,7 +105,7 @@ test('繁体转简体：旁路写入在写入时固定转换结果，之后关�
   await c.sync();
   const msg = { message_id: 0, ...c.chat[0] };
   const mk = c.host.mk.readMessageKey(msg);
-  const op = c.host.api_ops.createApiOp('insert', { 戰力: 5 }, 1, true);
+  const op = c.host.api_ops.createApiOp('insert', { 戰力: 5 }, { after: 1, ax: false }, true);
   await c.host.era_data.updateEraMetaData(meta => {
     meta.ApiOps = { [mk]: c.host.api_ops.appendApiOp(undefined, op, true) };
     return meta;

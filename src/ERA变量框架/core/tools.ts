@@ -81,7 +81,7 @@ export function runToolCall(
   oldStat: any,
   mk: string,
   seed: string,
-  /** 调用的来源标记（`extra`、`apiOps`），产出的操作继承它，只用于报告。 */
+  /** 调用的来源标记（`extra`、`api`），产出的操作继承它，只用于报告。 */
   source?: EraCommand['source'],
 ): { commands: EraCommand[]; result: ToolCallResult } {
   const result: ToolCallResult = { name: call.name, args: call.args, ok: false, operations: 0 };

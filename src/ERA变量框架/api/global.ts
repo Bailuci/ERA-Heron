@@ -11,6 +11,7 @@
  *       2026-11-28 新增 Era.sync、Era.extra.autoRun / settings / planInjection
  *       2026-11-28 注册工具、公式函数后请求重算出错时仍返回注销函数
  *       2026-11-28 registerSchema 无效时返回空的注销函数；Era.extra.plan 先等分步更新；整理注释
+ *       2026-11-28 simulate、checkSchema、extra.run、extra.abort 接受楼层号、MK 或对象
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -47,7 +48,7 @@ import { detMath } from '../utils/det_math';
 import type { CommitDetail, CommitOperation, TextCommitDetail } from '../events/handlers/api/handler';
 import { createTicket, EraWriteResult } from '../events/handlers/api/tickets';
 import { pushToQueue, waitForQueueIdle } from '../events/queue';
-import { rejectIfGuarded } from '../core/reentry';
+import { guardWrite, rejectIfGuarded } from '../core/reentry';
 import { diagnoseStat } from '../core/schema_diag';
 import {
   abortExtra,
@@ -125,6 +126,7 @@ function requestResyncForExtension(kind: 'tool' | 'expr', name: string) {
 }
 
 function registerHook(phase: HookPhase, id: string, fn: any, options: RegisterHookOptions = {}): () => void {
+  guardWrite(phase === 'before' ? 'Era.onBeforeApply' : 'Era.onAfterApply');
   const hook = addHook(phase, id, fn, options);
   if (!hook) {
     reportRegisterError('钩子注册失败', `id 必须是非空字符串，钩子必须是函数（id: ${String(id)}）。`);
@@ -168,6 +170,21 @@ function findFloor(where: FloorRef): any {
   if (mk) return findMessageByMk(mk) ?? undefined;
   const id = typeof where === 'number' ? where : (where as any)?.message_id;
   return Number.isInteger(id) ? getMessageAt(id) : undefined;
+}
+
+/**
+ * 把“哪一楼”换成 MK。接口统一接受楼层的消息 ID（可以用负数从末尾倒数）、MK 或 `{ mk, message_id }`；
+ * 直接给 MK 时原样使用（可以是没有显示的 swipe）。
+ * @throws 按楼层号找不到消息，或这一楼还没有 MK 时。
+ */
+function mkOfFloor(where: FloorRef): string {
+  if (typeof where === 'string') return where;
+  if (_.isPlainObject(where) && typeof (where as any).mk === 'string' && (where as any).mk) return (where as any).mk;
+  const msg = findFloor(where);
+  if (!msg) throw new Error('目标消息不存在');
+  const mk = readMessageKey(msg);
+  if (!mk) throw new Error('这一楼还没有被 ERA 登记（没有 MK），请等同步完成后再试');
+  return mk;
 }
 
 /** `Era.sync` 的实际执行：把一次同步排进队列，等队列处理完。 */
@@ -242,6 +259,8 @@ export const Era = {
    * @returns 注销函数；建议在脚本卸载（`pagehide`）时调用。schema 无效时弹窗提示、不注册，可用 `hasSchema()` 确认。
    */
   registerSchema(schema: EraSchemaLike, options: RegisterSchemaOptions = {}): () => void {
+    // 注册会在稍后触发一次重算：钩子、工具里注册的话，重算又会执行它们，再注册、再重算
+    guardWrite('Era.registerSchema');
     const registered = setActiveSchema(schema, options);
     if (!registered) {
       reportRegisterError('变量结构注册失败', 'schema 必须是带有 safeParse 方法的对象（例如 zod schema）。');
@@ -301,6 +320,7 @@ export const Era = {
    * @returns 注销函数；应在脚本卸载（`pagehide`）时调用。参数无效时弹窗提示、不注册，可用 `hasEntryFilter(name)` 确认。
    */
   registerEntryFilter(name: string, filter: EntryFilter): () => void {
+    guardWrite('Era.registerEntryFilter');
     const registered = addEntryFilter(name, filter);
     if (!registered) {
       reportRegisterError('条目过滤器注册失败', `名字必须是非空字符串，过滤器必须是函数（名字: ${String(name)}）。`);
@@ -324,6 +344,7 @@ export const Era = {
    * @returns 注销函数；应在脚本卸载（`pagehide`）时调用。参数无效时弹窗提示、不注册，可用 `hasTool(name)` 确认。
    */
   registerTool(name: string, definition: ToolDefinition): () => void {
+    guardWrite('Era.registerTool');
     const tool = addTool(name, definition);
     if (typeof tool === 'string') {
       reportRegisterError('工具注册失败', tool);
@@ -347,6 +368,7 @@ export const Era = {
    * @returns 注销函数；参数无效时弹窗提示、不注册，可用 `hasExprFn(name)` 确认。
    */
   registerExprFn(name: string, fn: (...args: number[]) => number, options?: ExprFnOptions): () => void {
+    guardWrite('Era.registerExprFn');
     const entry = addExprFn(name, fn, options);
     if (typeof entry === 'string') {
       reportRegisterError('公式函数注册失败', entry);
@@ -391,9 +413,10 @@ export const Era = {
    */
   async simulate(
     text: string,
-    mk?: string,
+    where?: FloorRef,
     options: { seedMk?: string } = {},
   ): Promise<{ stat: any; problems: { path: string; reason: string }[] }> {
+    const mk = where === undefined ? undefined : mkOfFloor(where);
     const stat = mk === undefined ? getEraData().stat : await getStatAfter(mk);
     if (stat === null) throw new Error('无法计算该楼的状态：MK 不存在，或日志已被折叠');
     const result = await simulateText(text, stat, options?.seedMk || undefined);
@@ -488,9 +511,20 @@ export const Era = {
      * 重新解析指定 MK 的消息；不指定时解析最后一条 AI 消息。解析结束后返回结果；
      * 被同一楼的新一次解析取代或被取消时 `status` 为 `aborted`。找不到消息时 Promise 失败。
      */
-    run: (mk?: string): Promise<ExtraRunResult> => rejectIfGuarded('Era.extra.run') ?? runExtraManually(mk),
+    run: (where?: FloorRef): Promise<ExtraRunResult> =>
+      rejectIfGuarded('Era.extra.run') ??
+      (async () => runExtraManually(where === undefined ? undefined : mkOfFloor(where)))(),
     /** 取消正在进行的解析。 */
-    abort: (mk?: string): void => abortExtra(mk),
+    abort: (where?: FloorRef): void => {
+      if (where === undefined) return abortExtra();
+      let mk: string;
+      try {
+        mk = mkOfFloor(where);
+      } catch {
+        return; // 楼层已经不在了，没有可以取消的
+      }
+      abortExtra(mk);
+    },
     /**
      * 等待正在进行的解析完成；没有时立即完成。脚本自行触发生成之前可以先等待它。
      * 时限按重试次数、超时和写入计算；返回 `false` 表示到了时限或玩家点击提示框放弃了等待。
@@ -545,7 +579,8 @@ export const Era = {
    * @param mk 检查哪一楼处理完之后的变量，默认是最新的变量；该楼的状态无法计算时 Promise 失败。
    * @returns `issues` 中 `kind` 为 `missing` 表示缺必填字段（多半是 schema 升级新增了字段），`invalid` 表示类型或取值不符。
    */
-  async checkSchema(mk?: string): Promise<EraSchemaCheckResult> {
+  async checkSchema(where?: FloorRef): Promise<EraSchemaCheckResult> {
+    const mk = where === undefined ? undefined : mkOfFloor(where);
     const stat = mk === undefined ? getEraData().stat : await getStatAfter(mk);
     if (stat === null) throw new Error('无法计算该楼的状态：MK 不存在，或日志已被折叠');
     const { registered, valid, issues, error } = diagnoseStat(getActiveSchema()?.schema, stat);

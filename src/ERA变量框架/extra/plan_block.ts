@@ -2,6 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。日期：2026-11-27。
  * 目的：正文前规划的 <era_plan> 块：读取、去掉与拼接（路线图 1.8-3）
  *       2026-11-28 新增 wrapPlanCommands（试算与写入同形）
+ *       2026-11-28 写入规划块前处理其中的 ERA 标签
  */
 'use strict';
 
@@ -46,6 +47,11 @@ export function wrapPlanCommands(blocks: string): string {
 export function appendPlanBlock(text: string, summary: string, blocks: string): string {
   const base = stripPlanBlock(text).trimEnd();
   if (!summary && !blocks) return base;
+  // 规划模型输出里的 ERA 自己的标签不能原样写进玩家消息：`</era_plan>` 会提前结束规划块，
+  // `<era_data>` 排在真正的消息密钥前面时会被当成这一楼的密钥。摘要是给人和模型看的文字，直接去掉；
+  // 指令块里的写成 JSON 的转义，解析后还是原来的文字（与 `appendExtraBlock` 相同）
+  summary = String(summary ?? '').replace(/<\/?era_(?:plan|data|extra)\b[^>]*>/gi, '');
+  blocks = String(blocks ?? '').replace(/<(?=\/?era_(?:plan|data|extra)\b)/gi, '\\u003c');
   const commands = wrapPlanCommands(blocks);
   const parts = [summary ? `<${SUMMARY_TAG}>${summary}</${SUMMARY_TAG}>` : '', commands].filter(Boolean);
   return `${base}\n<${PLAN_TAG}>\n${parts.join('\n')}\n</${PLAN_TAG}>`;

@@ -3,6 +3,7 @@
  * 日期：2026-11-25 至 2026-11-26
  * 目的：修复复审中发现的问题；发送前等待只拦玩家的发送，脚本用 Era.extra.wait()；修复 [1] 形式的键在 Patch 中的回滚；放弃等待时提示玩家
  *       2026-11-27 等待之后可以先做正文前规划，把结果写进输入框再发送
+ *       2026-11-28 等待、规划期间末楼换了 swipe 时不自动发送；开头带空白的斜杠命令放行
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -40,7 +41,14 @@ export function installSendGuard({ shouldHold, wait, shouldPlan, plan }: SendGua
 
   const hold = async (planning: boolean) => {
     holding = true;
-    const snapshot = () => [SillyTavern.getCurrentChatId?.(), SillyTavern.chat?.length, getText()];
+    // 末楼显示的是第几个 swipe 也要记：等待、规划期间把上一条回复滑到另一个 swipe，楼数不变，
+    // 但规划是按原来那个分支的变量算的，不能自动发进新的分支
+    const snapshot = () => [
+      SillyTavern.getCurrentChatId?.(),
+      SillyTavern.chat?.length,
+      SillyTavern.chat?.[SillyTavern.chat.length - 1]?.swipe_id ?? 0,
+      getText(),
+    ];
     let before = snapshot();
     let finished: boolean | void;
     const changed = () => {
@@ -81,8 +89,8 @@ export function installSendGuard({ shouldHold, wait, shouldPlan, plan }: SendGua
     if (passing) return;
     let planning = false;
     if (!holding) {
-      // 斜杠命令不会产生剧情
-      if (getText().startsWith('/') || builtin.duringGenerating()) return;
+      // 斜杠命令不会产生剧情（酒馆判断前会去掉开头的空白）
+      if (getText().trim().startsWith('/') || builtin.duringGenerating()) return;
       planning = !!shouldPlan?.(getText());
       if (!planning && !shouldHold()) return;
     }

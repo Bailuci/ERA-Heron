@@ -3,6 +3,7 @@
  * 日期：2026-11-25 至 2026-11-26
  * 目的：VariableEdit 支持 +=、-=、*=、/= 增量运算；修复 update 日志记录过期旧值导致的回滚错误；新增 <VariablePatch> 指令、宽松解析、只读字段与指令问题报告；修复复审中发现的问题；新增表达式 $expr
  *       2026-11-27 新聊天里整体覆盖对象时检查其中受 $meta、_ 保护的内容
+ *       2026-11-28 新聊天：整体覆盖数组时检查其中受保护的内容
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -198,8 +199,8 @@ async function applyEditAtLevel(
     // 同一条消息内对同一路径的连续修改会形成首尾相接的日志链，逆序回滚即可还原。
     const valOld = _.get(statData, subPath);
 
-    // 用一个值整体覆盖对象时，其中受保护的内容会一起丢掉：新聊天里拒绝这样的修改
-    if (strict && _.isPlainObject(valOld)) {
+    // 用一个值整体覆盖对象或数组时，其中受保护的内容会一起丢掉：新聊天里拒绝这样的修改
+    if (strict && (_.isPlainObject(valOld) || Array.isArray(valOld))) {
       const reason = findProtectedInside(valOld, !allowReadonly);
       if (reason) {
         reportIssue(issues, 'edit', subPath, `${reason}，不能整体覆盖`);

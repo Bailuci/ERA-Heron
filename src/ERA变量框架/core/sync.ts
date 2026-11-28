@@ -7,6 +7,7 @@
  *       2026-11-27 因未知工具或未知函数而失败的名字记进元数据（'missing'），换页面会话后注册时也完全重算一次
  *       2026-11-27 只对以前注册过的名字记 missing，AI 编造的名字不进元数据
  *       2026-11-28 问题说明改用 describeIssue
+ *       2026-11-28 记录末尾为空时完全重算仍先回滚；刚发出的玩家消息不再让上一条 AI 楼重算
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 'use strict';
@@ -92,6 +93,8 @@ export const stepBackToAiMessage = (start: number, messages: any[], selectedMks:
  * - 紧邻的、只登记过 MK 而从未计算过（没有日志记录）的 AI 消息一并重算。
  *
  * 折叠边界及之前的楼层没有逐楼日志，但都计算过，因此不会越过 `foldedIndex`。
+ * @param newTail 起点是刚发出的玩家消息（见 `resyncStateOnHistoryChange` 里的 `isNewTail`）：
+ *   它前面的 AI 消息计算过就不用再退，只补上从未计算过的。
  */
 export const widenRecalcForHooks = (
   start: number,
@@ -99,9 +102,12 @@ export const widenRecalcForHooks = (
   selectedMks: (string | null)[],
   allLogs: { [mk: string]: any },
   foldedIndex = -1,
+  newTail = false,
 ): number => {
   let first = Math.min(start, messages.length - 1);
-  while (first > Math.max(foldedIndex + 1, 0) && isUserMessage(messages[first])) first--;
+  if (!newTail) {
+    while (first > Math.max(foldedIndex + 1, 0) && isUserMessage(messages[first])) first--;
+  }
   for (let i = first - 1; i > foldedIndex; i--) {
     if (isUserMessage(messages[i])) continue;
     if (_.has(allLogs, [selectedMks[i] as any])) break; // 空日志也算计算过
@@ -433,7 +439,14 @@ export const resyncStateOnHistoryChange = async (
 
     // API 写入把指令追加在最后一条 AI 消息上。如果它后面还有用户消息，只重算末楼会漏掉这次写入，
     // 因此起点是用户消息时，退到它前面的 AI 消息。（定向同步的起点由调用方指定，不能前移。）
-    if (targetMessageId === undefined && firstRecalcId < allMessages.length) {
+    // 刚发出的玩家消息（末楼，记录里还没有它，它前面的楼层都已登记）不用退：写在更早楼层上、还没同步的 API 写入
+    // 由 dirtyIndex 负责。否则带规划的玩家消息每次都让上一条 AI 楼重算一遍，它的工具结果、指令问题会再广播一次。
+    const isNewTail =
+      firstRecalcId === allMessages.length - 1 &&
+      firstRecalcId === oldSelectedMks.length &&
+      firstRecalcId > 0 &&
+      !!oldSelectedMks[firstRecalcId - 1];
+    if (targetMessageId === undefined && firstRecalcId < allMessages.length && !isNewTail) {
       firstRecalcId = stepBackToAiMessage(firstRecalcId, allMessages, oldSelectedMks);
     }
 
@@ -444,6 +457,7 @@ export const resyncStateOnHistoryChange = async (
         oldSelectedMks,
         _.get(initialMeta, LOGS_PATH, {}),
         getFoldedIndex(initialMeta, oldSelectedMks),
+        isNewTail && isUserMessage(allMessages[firstRecalcId]),
       );
     }
 
@@ -487,7 +501,8 @@ export const resyncStateOnHistoryChange = async (
         : initialStat;
     } else if (firstRecalcId > -1 && firstRecalcId < oldSelectedMks.length) {
       const allLogs: { [mk: string]: string } = _.get(initialMeta, LOGS_PATH, {});
-      const currentMK = oldSelectedMks[oldSelectedMks.length - 1];
+      // 旧聊天的末楼是玩家消息时，记录的最后一项是空的：取最后一个有记录的楼层，否则会跳过回滚、在现有变量上重放
+      const currentMK = _.findLast(oldSelectedMks, Boolean);
       const targetMK = firstRecalcId > 0 ? oldSelectedMks[firstRecalcId - 1] : undefined;
 
       if (currentMK) {

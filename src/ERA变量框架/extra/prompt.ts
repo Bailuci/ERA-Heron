@@ -7,6 +7,7 @@
  *       2026-11-27 可选附上角色描述与用户人设（设置“附带角色信息”）
  *       2026-11-27 上一条玩家消息带正文前规划时，告诉更新模型已经执行的规划指令并要求不要重复
  *       2026-11-28 “ERA 表达式规则”不发给规划模型
+ *       2026-11-28 EJS 渲染环境带上用途
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -248,7 +249,13 @@ export async function collectExtraEntries(text: string, options: CollectOptions 
     const needsRender = item.content.includes('<%');
     if ((condition || needsRender) && renderer === undefined) {
       try {
-        renderer = await createEjsRenderer(engine, options.stat ?? {}, { mk: options.mk ?? '' }, warnings, deadline);
+        renderer = await createEjsRenderer(
+          engine,
+          options.stat ?? {},
+          { mk: options.mk ?? '', purpose: options.purpose ?? 'extra' },
+          warnings,
+          deadline,
+        );
       } catch (error: any) {
         renderer = null;
         warnings.push(`无法准备 EJS 渲染环境，含 EJS 或 @@if 的条目没有发送: ${error?.message ?? error}`);

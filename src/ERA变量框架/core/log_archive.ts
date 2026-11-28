@@ -3,6 +3,7 @@
  * 日期：2026-11-25 至 2026-11-26
  * 目的：新增额外模型分步更新、等待式提交、试算与变量结构说明；新增折叠日志存档：旧楼日志存到单独文件，可回滚与查询，缺失时自动从头重放；修复第三批改动在审查中发现的问题；修复复审中发现的问题；从头重放、还原存档后复用不再引用的编号，存档文件数不再随重算增长；进程内缓存设上限
  * 2026-11-27：写存档段时压缩单楼日志（逐楼自检，不通过保留原日志）
+ * 2026-11-28 缓存上限随当前聊天的存档段数放宽
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -63,8 +64,9 @@ const PATH_REGEX = /^\/user\/files\/era_logs_[0-9a-z]+_[0-9a-z]+_\d+\.json$/;
 
 /** 已读取的文件；`null` 表示不存在或不可用。按读取顺序淘汰，切换到别的聊天的存档时清空。 */
 const cache = new Map<string, SegmentFile | null>();
-/** 缓存最多保留的段数。 */
+/** 缓存最少保留的段数；当前聊天的存档更长时，按它的段数保留（见 `loadArchive`）。 */
 const CACHE_LIMIT = 30;
+let cacheLimit = CACHE_LIMIT;
 /** 缓存中的段属于哪个聊天（索引的 owner）。 */
 let cacheOwner: string | null = null;
 
@@ -81,7 +83,7 @@ function cacheGet(key: string): SegmentFile | null | undefined {
 function cacheSet(key: string, value: SegmentFile | null) {
   cache.delete(key);
   cache.set(key, value);
-  while (cache.size > CACHE_LIMIT) cache.delete(cache.keys().next().value!);
+  while (cache.size > cacheLimit) cache.delete(cache.keys().next().value!);
 }
 
 /** 段文件的编号；不是 `owner` 写的文件时返回 `null`。 */
@@ -155,8 +157,11 @@ export async function loadArchive(meta: any): Promise<void> {
     cache.clear();
     cacheOwner = owner;
   }
+  const chain = getChain(meta);
+  // 一个聊天的各段要同时留在缓存里才能还原：段数超过上限时，后读到的会把先读到的挤掉，存档整体用不上
+  cacheLimit = Math.max(CACHE_LIMIT, chain.length + 2);
   await Promise.all(
-    getChain(meta)
+    chain
       .filter(segment => !cache.has(segment.path + segment.hash))
       .map(async segment => {
         try {

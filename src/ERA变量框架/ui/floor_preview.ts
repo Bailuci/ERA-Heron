@@ -2,6 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-26
  * 目的：面板提交前的试算改用楼内试算器（与 atomic 提交是同一个试算器），不再用 Era.simulate 把修改当成新的一楼
+ *       2026-11-28 旁路写入的位置改用 apiPositionOf
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -19,7 +20,7 @@ import { createFloorSimulator, FloorSimulator, SimulateResult } from '../core/si
 import { findApiWriteTarget } from '../core/key/mk';
 import type { CommitOperation } from '../events/handlers/api/handler';
 import { toApiOps } from '../events/handlers/api/handler';
-import { countCommandBlocks } from '../utils/message';
+import { apiPositionOf } from '../utils/message';
 
 export interface FloorPreview {
   /** 写入的目标楼。 */
@@ -57,7 +58,7 @@ export async function openFloor(where: { mk?: string; message_id?: number } = {}
     message_id: Number(target.msg.message_id),
     swipe_id: Number(target.msg.swipe_id ?? 0),
     simulator,
-    run: operations => simulator.run({ ops: toApiOps(operations, countCommandBlocks(target.msg)) }),
+    run: operations => simulator.run({ ops: toApiOps(operations, apiPositionOf(target.msg)) }),
   };
 }
 
@@ -69,7 +70,7 @@ export async function previewCommit(
   operations: CommitOperation | CommitOperation[],
   where: { mk?: string; message_id?: number } = {},
 ): Promise<FloorPreview> {
-  toApiOps(operations, 0); // 格式有误时先报告
+  toApiOps(operations, { after: 0, ax: false }); // 格式有误时先报告
   const floor = await openFloor(where);
   const result = await floor.run(operations);
   return {

@@ -3,6 +3,7 @@
  * 日期：2026-11-25 至 2026-11-26
  * 目的：新增可选的变量结构 schema 校验与全局接口 Era；新增脚本设置“API写入不修改消息”；新增额外模型分步更新、等待式提交、试算与变量结构说明；新增折叠日志存档：旧楼日志存到单独文件，可回滚与查询，缺失时自动从头重放；显示 ERA-Heron 版本号；调整项目介绍与作者说法；；写入事件的监听器放在第一位，钩子执行期间发出的写入事件被拒绝（重入保护）
  *       2026-11-26 加载和切换聊天时检查角色卡变量“ERA最低版本”
+ *       2026-11-28 停止带 generation_id 的生成时不清主生成的临时 MK
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -78,7 +79,10 @@ eventOn(tavern_events.GENERATION_STARTED, (_type: any, _option: any, dry_run: bo
   if (!dry_run) clearProvisionalKey();
 });
 eventOn(tavern_events.GENERATION_ENDED, clearProvisionalKey);
-eventOn(tavern_events.GENERATION_STOPPED, clearProvisionalKey);
+// 酒馆助手的生成（分步更新、规划、其他脚本）被停止时带着它的 generation_id，那不是主生成
+eventOn(tavern_events.GENERATION_STOPPED, ((id?: unknown) => {
+  if (typeof id !== 'string') clearProvisionalKey();
+}) as any);
 
 eventOn(tavern_events.CHAT_DELETED, (chatId: string) => deleteArchive(chatId));
 

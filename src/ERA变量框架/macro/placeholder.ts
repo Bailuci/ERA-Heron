@@ -3,6 +3,7 @@
  * 日期：2026-11-26 至 2026-11-27
  * 目的：追加占位符时保留正文中的宏
  *       2026-11-27 从单段 AI 消息中去掉状态栏占位符的 stripStatusPlaceholderText（原在 macro/parser.ts，主生成与分步更新的提示词共用）
+ *       2026-11-28 核对按楼层号取回的消息是不是这一楼
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 'use strict';
@@ -57,7 +58,8 @@ export async function ensurePlaceholder(message_id: number) {
   logger.debug(funcName, '功能已启用，继续执行。');
 
   const chat_message = getChatMessages(message_id, { include_swipes: true })[0];
-  if (!chat_message) {
+  // 酒馆助手会把越界的楼层号夹到末楼：取回来的不是这一楼（它已经被删掉）时不处理
+  if (!chat_message || Number(chat_message.message_id) !== Number(message_id)) {
     logger.warn(funcName, `无法找到消息 ID: ${message_id} 对应的消息。`);
     return;
   }

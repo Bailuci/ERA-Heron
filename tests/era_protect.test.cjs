@@ -2,6 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。
  * 日期：2026-11-27
  * 目的：测试补全后的保护规则（解析版本 3）：整体覆盖对象、用非对象值删除子节点、VariablePatch 改动 $meta；旧聊天的结果不变
+ *       2026-11-28 整体删除、移动与数组的保护
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 // 运行方式: node --test tests/era_protect.test.cjs
@@ -194,4 +195,115 @@ test('Era.simulate 与正文使用同一套保护规则', async () => {
   const { simulateText } = c.host.load_src('core/simulate');
   const result = await simulateText(T('Edit', { 保护区: { 值: 0 } }), c.stat());
   assert.match(result.problems[0].reason, /不能整体覆盖/);
+});
+
+// ---------- 2.0.7：删除、移动与数组也检查其中受保护的内容 ----------
+
+const 仓库 = () => ({ 仓库: { 钥匙: { n: 1, $meta: { necessary: 'self' } }, 杂物: 2 } });
+
+guarded(
+  'Delete：删掉父节点不能连带删掉其中 necessary 保护的子节点',
+  仓库(),
+  T('Delete', { 仓库: {} }),
+  /受 \$meta\.necessary 保护.*不能整体删除/,
+  {},
+);
+
+guarded(
+  'Delete：自己标了 necessary:"children" 的节点不能整个删掉',
+  队伍(),
+  T('Delete', { 队伍: {} }),
+  /受 \$meta\.necessary 保护.*不能整体删除/,
+  {},
+);
+
+guarded(
+  'Delete：删掉父节点不能连带删掉其中 updatable:false 的内容',
+  保护区(),
+  T('Delete', { 保护区: {} }),
+  /受 \$meta\.updatable 保护.*不能整体删除/,
+  {},
+);
+
+guarded(
+  'Delete：开启下划线只读后，不能整个删掉含 _ 字段的对象',
+  { 档案: { 备注: { _内部: 1 } } },
+  T('Delete', { 档案: {} }),
+  /以 _ 开头的只读字段.*不能整体删除/,
+  {},
+  readonly,
+);
+
+guarded(
+  'Patch：remove 父节点不能连带删掉其中受保护的子节点',
+  仓库(),
+  P({ op: 'remove', path: '/仓库' }),
+  /受 \$meta\.necessary 保护/,
+  {},
+);
+
+const 圣殿 = () => ({ 圣殿: { 核心: 1, 外墙: 2, $meta: { necessary: 'all' } } });
+
+guarded(
+  'Delete：带一个删不掉保护的 $meta.necessary 不能绕过 necessary:"all"',
+  圣殿(),
+  T('Delete', { 圣殿: { $meta: { necessary: { 假键: {} } }, 核心: {} } }),
+  /受 \$meta\.necessary 保护/,
+  { 圣殿: { 外墙: 2, $meta: { necessary: 'all' } } },
+);
+
+test('Delete：真的删除 $meta.necessary 的写法仍然可以解除保护', async () => {
+  const { stat } = await run(圣殿(), T('Delete', { 圣殿: { $meta: { necessary: {} }, 核心: {} } }), NEW);
+  assert.deepEqual(stat, { 圣殿: { 外墙: 2, $meta: {} } });
+});
+
+test('Delete：没有受保护内容的对象照常可以整个删掉', async () => {
+  const { stat, issues } = await run({ a: { b: { c: 1 } }, d: [1, { e: 2 }] }, T('Delete', { a: {}, d: {} }), NEW);
+  assert.deepEqual(stat, {});
+  assert.deepEqual(issues, []);
+});
+
+const 宝库 = () => ({ 宝库: { 金币: 5, $meta: { necessary: 'all' } } });
+
+test('Patch：move 过来的值不能改掉目标上的 $meta', async () => {
+  const mes = P(
+    { op: 'replace', path: '/伪装', value: { $meta: {}, 金币: 100 } },
+    { op: 'move', from: '/伪装', path: '/宝库' },
+    { op: 'remove', path: '/宝库' },
+  );
+  const strict = await run(宝库(), mes, NEW);
+  // 第一步只是新建一个节点，照常生效；后两步动不了宝库
+  assert.deepEqual(strict.stat, { ...宝库(), 伪装: { $meta: {}, 金币: 100 } });
+  assert.match(strict.issues[0].reason, /VariablePatch 不能改动 \$meta/);
+  assert.match(strict.issues[1].reason, /受 \$meta\.necessary 保护/);
+  const old = await run(宝库(), mes, OLD);
+  assert.deepEqual(old.stat, {}, '旧聊天：结果与原来相同');
+});
+
+guarded(
+  'Patch：用标量 replace 掉 necessary:"self" 的对象',
+  { 箱子: { 物: 1, $meta: { necessary: 'self' } } },
+  P({ op: 'replace', path: '/箱子', value: 0 }),
+  /受 \$meta\.necessary 保护/,
+  { 箱子: 0 },
+);
+
+test('Patch：move 普通对象（含受保护的子节点）只是换位置，照常可用', async () => {
+  const { stat, issues } = await run(仓库(), P({ op: 'move', from: '/仓库', path: '/新仓库' }), NEW);
+  assert.deepEqual(stat, { 新仓库: 仓库().仓库 });
+  assert.deepEqual(issues, []);
+});
+
+guarded(
+  'Edit：用别的值覆盖数组，其中有受保护的对象',
+  { 队列: [{ id: 1, $meta: { updatable: false } }] },
+  T('Edit', { 队列: [] }),
+  /受 \$meta\.updatable 保护.*不能整体覆盖/,
+  { 队列: [] },
+);
+
+test('Edit：没有受保护内容的数组照常可以整体覆盖', async () => {
+  const { stat, issues } = await run({ 列表: [1, { a: 2 }] }, T('Edit', { 列表: [3] }), NEW);
+  assert.deepEqual(stat, { 列表: [3] });
+  assert.deepEqual(issues, []);
 });

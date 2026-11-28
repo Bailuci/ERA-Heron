@@ -2,6 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 修改。
  * 日期：2026-11-25 至 2026-11-26
  * 目的：修复 rollbackTo 之后状态错误；新增脚本设置“API写入不修改消息”；修复第二批改动在审查中发现的问题；新增额外模型分步更新、等待式提交、试算与变量结构说明；同步放弃或失败时不再更新末楼 MK、不发出 writeDone；合并后的任务保留完全重算与清理需求
+ *       2026-11-28 核对按楼层号取回的消息是不是这一楼
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 'use strict';
@@ -47,8 +48,11 @@ export async function handleSyncEvent(
   // 载入聊天或完全重算时，清除已不属于任何楼层的旁路 API 写入
   if (!stopAtTarget && needsPruneJob(job)) await pruneApiOps();
   // 同步过程中该消息的 MK 可能已被更换（参见 dedupeMessageKeys）
+  // 这一楼可能已经被删掉：酒馆助手会把越界的楼层号夹到末楼，取回来的不是它时不能用
   const latest = getChatMessages(payload.message_id, { include_swipes: true })?.[0];
-  if (payload.mk && latest) payload.mk = readMessageKey(latest) || payload.mk;
+  if (payload.mk && latest && Number(latest.message_id) === Number(payload.message_id)) {
+    payload.mk = readMessageKey(latest) || payload.mk;
+  }
   settleTickets();
   emitWriteDoneEvent(payload);
 }

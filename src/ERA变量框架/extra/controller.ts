@@ -9,6 +9,7 @@
  *       2026-11-27 等待中的楼层按 getMessageAt 取；重新规划时不把 <era_data> 发给规划模型
  *       2026-11-28 新增 runExtraAuto、getExtraSwitches、planInjectionOf
  *       2026-11-28 runExtraAuto 先看开关再看 MK
+ *       2026-11-28 超时后原请求的失败不再成为未处理的 rejection
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -199,6 +200,8 @@ async function generateOnce(
         reject(Object.assign(new Error(`超过 ${config.超时秒数} 秒没有完成`), { retryable: true }));
       }, config.超时秒数 * 1000);
     });
+    // 超时后请求被中止，它自己随后也会失败：那次失败已经没有人等，先接住
+    Promise.resolve(request).catch(() => {});
     const result: any = await Promise.race([request, timeout]);
     if (job.signal.aborted) throw new Error('已取消');
     const text = typeof result === 'string' ? result : String(result?.content ?? result?.text ?? '');
@@ -430,6 +433,8 @@ async function requestPlan(
         reject(Object.assign(new Error(`超过 ${config.超时秒数} 秒没有完成`), { retryable: true }));
       }, config.超时秒数 * 1000);
     });
+    // 超时后请求被中止，它自己随后也会失败：那次失败已经没有人等，先接住
+    Promise.resolve(request).catch(() => {});
     const result: any = await Promise.race([request, timeout]);
     if (signal.aborted) throw new Error('已取消');
     const text = typeof result === 'string' ? result : String(result?.content ?? result?.text ?? '');

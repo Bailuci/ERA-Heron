@@ -40,7 +40,7 @@ export async function eraGet(named: Record<string, unknown>, path: string): Prom
  * `/era-issues [format=json|model]`：最新 AI 楼没有生效的指令与原因，与 `{{ERA-issues}}` 读同一份报告（见 `core/issues.ts`）。
  * - 默认每条一行（`- 路径：原因`），列出全部来源的问题，没有问题时为空串；
  * - `format=json` 返回完整结果，形如 `{"message_id":3,"mk":"…","problems":[{"path":"…","reason":"…","origin":"text"}]}`，
- *   额外模型输出和旁路写入的问题带 `source`（`extra` / `apiOps`），无法计算时带 `unavailable` 说明原因；
+ *   额外模型输出和旁路写入的问题带 `source`（`extra` / `api`），无法计算时带 `unavailable` 说明原因；
  * - `format=model` 返回 `{{ERA-issues}}` 给主模型的文字（只含主模型自己写在正文里的指令）。
  */
 export async function eraIssues(named: Record<string, unknown>): Promise<string> {
