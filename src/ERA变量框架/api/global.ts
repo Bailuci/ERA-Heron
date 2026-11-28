@@ -9,6 +9,7 @@
  *       2026-11-27 更正条目过滤器在主生成中的调用时机说明
  *       2026-11-27 setMessageText / keepMessageKey 的楼层号越界时报错（酒馆助手会把越界的楼层号夹到首尾楼）
  *       2026-11-28 新增 Era.sync、Era.extra.autoRun / settings / planInjection
+ *       2026-11-28 注册工具、公式函数后请求重算出错时仍返回注销函数
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -110,10 +111,15 @@ const requestResyncForHooks = _.debounce(() => eventEmit(ERA_API_EVENTS.FORCE_SY
  * 否则与钩子相同（扩展的标识带版本号，新增或提高版本时同步会自行改为完全重算）。
  */
 function requestResyncForExtension(kind: 'tool' | 'expr', name: string) {
-  if (takeUnknownExtension(kind, name)) {
-    eventEmit(ERA_API_EVENTS.FORCE_SYNC, { mode: 'full' });
-  } else {
-    requestResyncForHooks();
+  // 注册已经完成，请求重算时出任何问题都不能让注册接口抛错：调用方拿不到注销函数，工具却留在了内存里
+  try {
+    if (takeUnknownExtension(kind, name)) {
+      eventEmit(ERA_API_EVENTS.FORCE_SYNC, { mode: 'full' });
+    } else {
+      requestResyncForHooks();
+    }
+  } catch (error: any) {
+    logger.warn('requestResyncForExtension', `注册 ${name} 后请求重算失败：${error?.message ?? error}`);
   }
 }
 

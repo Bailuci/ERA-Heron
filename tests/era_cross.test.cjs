@@ -797,3 +797,52 @@ test('Era.extra.settings / planInjection / autoRun：同层前端用的开关、
   await assert.rejects(Era.extra.autoRun(99), /目标消息不存在/);
   for (const name of ['sync', 'extraAuto']) assert.ok(Era.features.includes(name), name);
 });
+
+// ============================ 2.0.5 ============================
+
+test('切换角色卡的过渡态里取不到聊天 ID 时，registerTool / registerExprFn 仍然返回注销函数', async () => {
+  const env = create_env({
+    globals: {
+      SillyTavern: {
+        name1: 'User',
+        name2: 'Char',
+        characterId: 'c',
+        characters: {},
+        getCurrentChatId: () => {
+          throw new TypeError("Cannot read properties of undefined (reading 'getContext')");
+        },
+      },
+    },
+  });
+  const Era = env.Era();
+  const offTool = Era.registerTool('检定', { description: '掷骰', handler: () => ({ operations: [] }) });
+  const offFn = Era.registerExprFn('加值', x => x + 1, { params: 1 });
+  assert.equal(typeof offTool, 'function');
+  assert.equal(typeof offFn, 'function');
+  assert.equal(Era.hasTool('检定'), true);
+  assert.equal(Era.hasExprFn('加值'), true);
+  offTool();
+  offFn();
+  assert.equal(Era.hasTool('检定'), false);
+  assert.equal(Era.hasExprFn('加值'), false);
+  const registry = env.load('api/tool_registry');
+  assert.doesNotThrow(() => registry.noteUnknownExtension('tool', 'x'));
+  assert.deepEqual(plain(registry.getUnknownExtensions()), ['tool:x']);
+});
+
+test('钩子里区分来源：Era.commit 是 origin=api，Era.applyText 是 origin=text；两者的 source 都是 api，正文指令没有 source', async () => {
+  const env = await story({}, `你捡到钱。${T('Edit', { 金币: '+=1' })}`);
+  let seen = [];
+  env.host.hook_registry.addHook('before', '卡.记录', ctx => {
+    seen = ctx.commands.map(c => `${c.origin}/${c.source ?? '-'}`);
+    for (const command of ctx.commands) {
+      if (command.source === 'api' || command.type !== 'edit') continue;
+      for (const block of command.data) if (block.金币 === '+=1') block.金币 = '+=0';
+    }
+  });
+  await env.commit([{ edit: { 金币: '+=1' } }]);
+  await env.apply_text(T('Edit', { 金币: '+=1' }));
+  assert.deepEqual(plain(seen), ['text/-', 'api/api', 'text/api']);
+  // 正文里的 +1 被钩子压成 0，界面的两次写入不受影响
+  assert.equal(env.stat().金币, 12);
+});

@@ -8,7 +8,7 @@ ERA（Efficient Rollback Architecture）是一个 [酒馆助手（Tavern Helper�
 
 **ERA-Heron** 是基于 ERA 变量框架二次开发、持续迭代的酒馆助手变量框架；原作者为 [RockingSisyphus（世界的山田）](https://github.com/RockingSisyphus/ERA-EfficientRollbackArchitecture)（原版已转向新架构、不再更新）。ERA-Heron 在原框架上加入了变量结构校验、`<VariablePatch>`、`$expr` 表达式、工具调用、分步更新、正文前规划与全新工作台面板，并且**兼容现有的 ERA 角色卡和聊天记录**。
 
-当前版本：**2.0.4** · [更新日志](更新日志.md) · 许可：[AFPL](LICENSE)（免费使用，不得收费分发）
+当前版本：**2.0.5** · [更新日志](更新日志.md) · 许可：[AFPL](LICENSE)（免费使用，不得收费分发）
 
 ---
 
@@ -60,12 +60,12 @@ ERA（Efficient Rollback Architecture）是一个 [酒馆助手（Tavern Helper�
 ## 安装
 
 1. 下载 [`artifact/bundle.js`](artifact/bundle.js)。
-2. 在酒馆中打开角色卡 → 酒馆助手 → 脚本库 → **角色脚本** → 新建脚本，名字填 `ERA-Heron 2.0.4`，把 `bundle.js` 的全部内容粘贴进去并启用。
+2. 在酒馆中打开角色卡 → 酒馆助手 → 脚本库 → **角色脚本** → 新建脚本，名字填 `ERA-Heron 2.0.5`，把 `bundle.js` 的全部内容粘贴进去并启用。
 
    也可以不粘贴全文，只写一行（版本号对应 [标签](https://github.com/Bailuci/ERA-Heron/tags)）：
 
    ```js
-   import 'https://testingcf.jsdelivr.net/gh/Bailuci/ERA-Heron@v2.0.4/artifact/bundle.js';
+   import 'https://testingcf.jsdelivr.net/gh/Bailuci/ERA-Heron@v2.0.5/artifact/bundle.js';
    ```
 
 3. 页面边缘出现 ERA 悬浮球即安装成功。点击打开 ERA 面板即可查看变量、日志、快照、分步更新、工具（快速初始化、重算、更新旧卡的规则）、诊断、设置和关于页。

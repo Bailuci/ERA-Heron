@@ -2,6 +2,7 @@
   修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增（取代 RightRailContent/AboutEra.vue）。
   日期：2026-11-26 至 2026-11-27
   目的：重新设计面板：关于页（名称与版本、作者与原作者、许可说明、文档入口、面板入口说明）；调整项目介绍与作者说法；2026-11-27 去掉交流群信息；文档入口补上 08 动态提示词
+          2026-11-28 作者一栏加上 ERA-Heron 的介绍帖
   原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
 -->
 <template>
@@ -27,6 +28,8 @@
           <dd>
             白鹭辞（Bailuci）·
             <a :href="ERA_REPOSITORY" target="_blank" rel="noopener noreferrer">GitHub · ERA-Heron</a>
+            ·
+            <a :href="HERON_POST" target="_blank" rel="noopener noreferrer">介绍帖（Discord）</a>
           </dd>
         </div>
         <div>
@@ -105,6 +108,7 @@ import { availableTabs } from '../../tabs';
 import EraIcon from '../../template/EraIcon.vue';
 
 const ORIGINAL_REPOSITORY = 'https://github.com/RockingSisyphus/ERA-EfficientRollbackArchitecture/tree/master';
+const HERON_POST = 'https://discord.com/channels/1134557553011998840/1575885202918477834';
 const ORIGINAL_POST = 'https://discord.com/channels/1134557553011998840/1423319849400270928';
 
 const DOCS = [

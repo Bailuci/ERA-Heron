@@ -3,6 +3,7 @@
  * 目的：工具调用 <EraFCall> 与自定义公式函数的注册表（路线图 1.8-2）
  *       2026-11-27 公式函数不能叫 call（求值器保留给存成变量的公式）
  *       2026-11-27 因未注册而失败过的名字可以取出，记进元数据（跨页面会话，注册后完全重算）
+ *       2026-11-28 取聊天 ID 出错时不让注册接口中断
  */
 /**
  * @file ERA 变量框架 - 工具与自定义公式函数的注册表
@@ -99,9 +100,21 @@ function purge() {
 
 let unknown: { chat: string | undefined; names: Set<string> } = { chat: undefined, names: new Set() };
 
+/**
+ * 当前聊天的 ID。切换角色卡的过渡态里酒馆的上下文还没有就绪，这时访问 `SillyTavern` 会抛错；
+ * 取不到时返回 `undefined`，不能让注册接口因此中断。
+ */
+function currentChatId(): string | undefined {
+  try {
+    return SillyTavern.getCurrentChatId?.();
+  } catch {
+    return undefined;
+  }
+}
+
 /** 记下一次因“未知工具 / 未知函数”失败的调用。 */
 export function noteUnknownExtension(kind: 'tool' | 'expr', name: string): void {
-  const chat = SillyTavern.getCurrentChatId?.();
+  const chat = currentChatId();
   if (unknown.chat !== chat) unknown = { chat, names: new Set() };
   unknown.names.add(`${kind}:${name}`);
 }
@@ -111,7 +124,7 @@ export function noteUnknownExtension(kind: 'tool' | 'expr', name: string): void 
  * 同步时记进元数据的 `Extensions`，值为 `MISSING_EXTENSION_VERSION`：之后它注册时版本不相等，完全重算一次（跨页面会话也有效）。
  */
 export function getUnknownExtensions(): string[] {
-  if (unknown.chat !== SillyTavern.getCurrentChatId?.()) return [];
+  if (unknown.chat !== currentChatId()) return [];
   return [...unknown.names].filter(key => {
     const [kind, ...rest] = key.split(':');
     const name = rest.join(':');
@@ -124,7 +137,7 @@ export const MISSING_EXTENSION_VERSION = 'missing';
 
 /** 该名字是否在当前聊天里因未注册而失败过；查询后清除记录。 */
 export function takeUnknownExtension(kind: 'tool' | 'expr', name: string): boolean {
-  if (unknown.chat !== SillyTavern.getCurrentChatId?.()) return false;
+  if (unknown.chat !== currentChatId()) return false;
   return unknown.names.delete(`${kind}:${name}`);
 }
 
