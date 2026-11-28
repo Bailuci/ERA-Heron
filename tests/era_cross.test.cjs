@@ -846,3 +846,81 @@ test('钩子里区分来源：Era.commit 是 origin=api，Era.applyText 是 orig
   // 正文里的 +1 被钩子压成 0，界面的两次写入不受影响
   assert.equal(env.stat().金币, 12);
 });
+
+// ============================ 整理（2.0.6） ============================
+
+test('工具直接返回单个操作对象：这次调用失败并说明原因，而不是悄悄当成没有操作', async () => {
+  const env = create_env({
+    tools: [
+      ['错的', { description: 'x', handler: () => ({ edit: { 金币: 1 } }) }],
+      ['对的', { description: 'x', handler: () => ({ operations: [{ edit: { 金币: 2 } }], result: { ok: 1 } }) }],
+      ['空的', { description: 'x', handler: () => ({ result: { n: 0 } }) }],
+    ],
+  });
+  env.send('assistant', `开场${T('Insert', { 金币: 10 })}`);
+  env.send(
+    'assistant',
+    '<EraFCall name="错的">{}</EraFCall><EraFCall name="对的">{}</EraFCall><EraFCall name="空的">{}</EraFCall>',
+  );
+  await env.sync();
+  assert.equal(env.stat().金币, 2);
+  const { getLatestReport } = env.load('core/latest_report');
+  const calls = plain(getLatestReport().toolResults);
+  assert.equal(calls[0].ok, false);
+  assert.match(calls[0].error, /单个操作对象/);
+  assert.equal(calls[1].ok, true);
+  assert.equal(calls[2].ok, true);
+});
+
+test('registerSchema 传入无效的 schema：返回的注销函数什么也不做，不会清掉已经注册的结构', async () => {
+  const env = create_env();
+  const Era = env.Era();
+  const good = { safeParse: value => ({ success: true, data: value }) };
+  Era.registerSchema(good, { resync: false });
+  assert.equal(Era.hasSchema(), true);
+  const off = Era.registerSchema(undefined);
+  off();
+  assert.equal(Era.hasSchema(), true, '无效注册返回的函数不能注销别人的结构');
+});
+
+test('Era.extra.autoRun：没有开启分步更新时，还没有 MK 的楼也返回 null 而不是失败', async () => {
+  const env = await story();
+  env.send('assistant', '脚本刚建的楼，还没有同步');
+  assert.equal(await env.Era().extra.autoRun(-1), null);
+});
+
+test('分组并行的分步更新：各组单独可行、合起来冲突时报告问题；“整次放弃”时不写入', async () => {
+  const z = require('zod');
+  const groups = [entry('[era_update:物品]规则', '物品规则'), entry('[era_update:状态]规则', '状态规则')];
+  const schema = z.object({ 金币: z.number().min(0), 地点: z.string() }).passthrough();
+  for (const [mode, written] of [
+    ['保留有效部分', true],
+    ['整次放弃', false],
+  ]) {
+    const env = await story({ entries: groups, schema });
+    const { result } = await run(env, () => T('Edit', { 金币: '-=6' }), { 失败处理: mode });
+    assert.match(result.problems.join('\n'), /分组之间有冲突/, mode);
+    assert.equal(/<era_extra>/.test(env.chat[2].swipes[0]), written, mode);
+    assert.ok(env.stat().金币 >= 0, mode);
+  }
+  // 不冲突时没有额外的问题
+  const env = await story({ entries: groups, schema });
+  const { result } = await run(env, () => T('Edit', { 金币: '-=3' }));
+  assert.deepEqual(result.problems, []);
+  assert.equal(env.stat().金币, 4);
+});
+
+test('写入事件 × 没闭合的思考标签：追加到正文不会执行时改为旁路写入，变量照常更新', async () => {
+  const c = create_chat({ globals: { toastr: { warning() {}, error() {} } } });
+  const api = c.host.load_src('events/handlers/api/handler');
+  c.send('assistant', `开场${T('Insert', { 金币: 10 })}`);
+  c.send('user', '继续');
+  c.send('assistant', '<think>先想一想这一轮…（回复在这里被截断）');
+  await c.sync();
+  const before = c.chat[2].swipes[0];
+  await api.updateByPath('金币', '+=5');
+  await c.sync();
+  assert.equal(c.stat().金币, 15);
+  assert.equal(c.chat[2].swipes[0], before, '正文没有被追加一个不会执行的指令块');
+  assert.deepEqual(plain(await c.replay()), plain(c.stat()));
+});

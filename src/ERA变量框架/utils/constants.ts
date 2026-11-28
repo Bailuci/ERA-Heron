@@ -7,6 +7,7 @@
  *       2026-11-27 解析版本 3；ActionsTaken.apply 标为保留字段；版本号 2.0.3
  *       2026-11-28 ERA_FEATURES 登记 sync、extraAuto；版本号 2.0.4
  *       2026-11-28 版本号 2.0.5
+ *       2026-11-28 ERA_FEATURES 登记 hookSource；版本号 2.0.6
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -44,7 +45,7 @@
 import { z } from 'zod';
 
 /** ERA-Heron（基于 ERA 变量框架二次开发）的版本号。 */
-export const ERA_VERSION = '2.0.5';
+export const ERA_VERSION = '2.0.6';
 
 /**
  * 当前版本提供的功能，供角色卡用 `Era.features.includes(...)` 判断，参见 `Era.features`。
@@ -90,9 +91,12 @@ export const ERA_FEATURES: readonly string[] = [
   'commitKey',
   /** `Era.setMessageText`：改写一楼的正文并重新计算。 */
   'setMessageText',
-  /** `Era.sync`（可等待的同步）与 `Era.extra.autoRun` / `settings` / `planInjection`（自己建楼、自己调用生成的前端用）。 */
+  /** `Era.sync`：可以等待的同步。 */
   'sync',
+  /** `Era.extra.autoRun` / `settings` / `planInjection`：自己建楼、自己调用生成的前端用。 */
   'extraAuto',
+  /** 钩子的 `ctx.commands[i].origin` / `source`，其中旁路写入的 `source` 是 `'api'`（2.0.5 起）。 */
+  'hookSource',
   /** 表达式里的 `call(公式路径, 参数…)`：调用存成字符串变量的公式。 */
   'exprCall',
 ];

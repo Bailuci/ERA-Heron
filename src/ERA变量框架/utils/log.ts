@@ -2,6 +2,7 @@
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 修改。
  * 日期：2026-11-25 至 2026-11-26
  * 目的：日志调用栈路径适配 ERA/ 子目录结构；debug 支持惰性参数并新增 isDebug()，未开启调试时不再计算昂贵的日志参数
+ *       2026-11-28 eraDebug 也挂到酒馆页面上
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -155,6 +156,12 @@ if (typeof globalThis !== 'undefined') {
   };
 
   (globalThis as any).eraDebug = eraDebug;
+  // ERA 运行在脚本自己的 iframe 里；F12 控制台默认在酒馆页面上，那里也要能用
+  try {
+    if (window.parent && window.parent !== window) (window.parent as any).eraDebug = eraDebug;
+  } catch {
+    // 访问不了上层页面时只留在脚本自己的窗口里
+  }
 }
 
 // --- Logger 类 ---

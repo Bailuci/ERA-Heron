@@ -559,3 +559,61 @@ test('回归：摘要只在思考块之外取（思考里提到标签名、接�
   const second = scripted(['<think>草稿 <PlanSummary>错的</PlanSummary></think><PlanSummary>对的</PlanSummary>']);
   assert.equal((await runPlan('攻击', [], CONFIG, second.deps, { aborted: false })).summary, '对的');
 });
+
+// ============================ 功能组合（2.0.6 整理） ============================
+
+test('规划 × 指令外层标签：试算与写入同形，写错的规划输出照样带着问题重试', async () => {
+  const env = create_env({ settings: { 指令外层标签: 'ERA_Update' } });
+  env.send('assistant', `开场<ERA_Update>${T('Insert', { 敌人: { 生命: 10 } })}</ERA_Update>`);
+  await env.sync();
+  const { runPlan, appendPlanBlock } = env.load('extra/plan');
+  const bad = `<PlanSummary>命中</PlanSummary>${T('Edit', { 不存在: { a: 1 } })}`;
+  const good = `<PlanSummary>命中</PlanSummary>${T('Edit', { 敌人: { 生命: '-=4' } })}`;
+  const { calls, deps } = scripted([bad, good]);
+  const result = await runPlan('攻击', [], CONFIG, deps, { aborted: false });
+  assert.equal(calls.length, 2, '第一次的输出路径不存在，应当重试');
+  assert.equal(result.status, 'done');
+  env.send('user', appendPlanBlock('攻击', result.summary, result.blocks));
+  await env.sync();
+  assert.equal(env.stat().敌人.生命, 6);
+});
+
+test('规划的提示词：数字的增减要求用增量写法；“ERA 表达式规则”不发给规划模型', async () => {
+  const { ERA_EXPR_RULE_ENTRY_NAME } = create_env().load('initer/manual/worldbook_entries/era_expr_rule');
+  const env = await setup({
+    entries: [
+      entry('[era_plan]检定', '攻击时掷 d20'),
+      entry(ERA_EXPR_RULE_ENTRY_NAME, '掷骰时写 {"$expr": "roll(1, 6)"}'),
+    ],
+  });
+  const { runPlan } = env.load('extra/plan');
+  const { calls, deps } = scripted([`<PlanSummary>命中</PlanSummary>${T('Edit', { 敌人: { 生命: '-=4' } })}`]);
+  const result = await runPlan('攻击', [], CONFIG, deps, { aborted: false });
+  assert.equal(result.status, 'done');
+  const system = calls[0]
+    .filter(p => p.role === 'system')
+    .map(p => p.content)
+    .join('\n');
+  assert.match(system, /增量写法/);
+  assert.match(system, /不要使用 \$expr/);
+  assert.doesNotMatch(system, /roll\(1, 6\)/, '表达式规则与“不要使用 $expr”矛盾，不能发给规划模型');
+  assert.match(system, /攻击时掷 d20/);
+});
+
+test('规划用增量写时，晚到的改动不会被盖掉', async () => {
+  const env = create_env();
+  const tickets = env.load('events/handlers/api/tickets');
+  const handler = env.load('events/handlers/api/handler');
+  const { appendPlanBlock } = env.load('extra/plan');
+  env.send('assistant', `开场${T('Insert', { 法力: 10 })}`);
+  env.send('user', appendPlanBlock('施放火球', '火球消耗 2 点法力', T('Edit', { 法力: '-=2' })));
+  await env.sync();
+  assert.equal(env.stat().法力, 8);
+  // 剧情还在生成时，界面往上一条 AI 消息写入（排在规划之前）
+  const { ticket, promise } = tickets.createTicket(5000);
+  promise.catch(() => {});
+  await handler.commit({ operations: [{ edit: { 法力: '+=5' } }] }, ticket);
+  await env.sync();
+  tickets.settleTickets();
+  assert.equal(env.stat().法力, 13);
+});

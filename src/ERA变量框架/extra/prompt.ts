@@ -6,6 +6,7 @@
  *       2026-11-27 可选条目“ERA 表达式规则”视为内置的更新条目；聊天记录去掉旧卡的状态栏占位符；{{ERA-issues}} 展开为空
  *       2026-11-27 可选附上角色描述与用户人设（设置“附带角色信息”）
  *       2026-11-27 上一条玩家消息带正文前规划时，告诉更新模型已经执行的规划指令并要求不要重复
+ *       2026-11-28 “ERA 表达式规则”不发给规划模型
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -200,6 +201,8 @@ export async function collectExtraEntries(text: string, options: CollectOptions 
       const tag = parseEntryTag(entry.name);
       const forPlan = options.purpose === 'plan';
       if (forPlan ? !tag.plan && !tag.both && !tag.builtin : !tag.update && !tag.both) continue;
+      // 规划里不能用 $expr（玩家消息还没有 MK，取不到随机数种子），表达式规则会和规划的要求互相矛盾
+      if (forPlan && entry.name.trim() === ERA_EXPR_RULE_ENTRY_NAME) continue;
       // 过滤器在开关检查之前运行：被过滤器管理的条目，文件里的开关只是过滤器不表态时的默认值
       const { decision, content: replaced } =
         filters.length > 0

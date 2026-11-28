@@ -8,6 +8,7 @@
  *       2026-11-27 主生成标记不再因斜杠命令等提前返回而卡住（还要求酒馆正处于生成中）；规划摘要只在与 GENERATION_STARTED 配对的 AFTER_COMMANDS 注入；带 ID 的停止不撤注入；切换聊天后旧聊天的结果不再写进新聊天
  *       2026-11-27 等待中的楼层按 getMessageAt 取；重新规划时不把 <era_data> 发给规划模型
  *       2026-11-28 新增 runExtraAuto、getExtraSwitches、planInjectionOf
+ *       2026-11-28 runExtraAuto 先看开关再看 MK
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -358,9 +359,9 @@ export async function runExtraManually(mk?: string): Promise<ExtraRunResult> {
  * 给自己建楼的前端用（脚本建的楼不会触发自动解析）。成功和无变化时不弹提示，与自动解析相同。
  */
 export async function runExtraAuto(msg: any): Promise<ExtraRunResult | null> {
+  if (!isExtraEnabled() || isUserMessage(msg) || hasOwnCommands(msg)) return null;
   const mk = msg ? readMessageKey(msg) : '';
   if (!mk) throw new Error('这一楼还没有被 ERA 登记（没有 MK），请等同步完成后再解析');
-  if (!isExtraEnabled() || isUserMessage(msg) || hasOwnCommands(msg)) return null;
   return startExtra(mk, false);
 }
 

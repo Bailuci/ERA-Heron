@@ -13,6 +13,7 @@
  *       2026-11-27 Era.extra.status() 增加 history（最近几次分步更新与规划的请求记录）
  *       2026-11-28 新增接口与钩子指令来源的类型
  *       2026-11-28 更正钩子指令 origin / source 的说明
+ *       2026-11-28 整理错位的注释
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 declare namespace Era {
@@ -266,7 +267,7 @@ declare namespace Era {
 
   type ExtraResultStatus = 'done' | 'no_entries' | 'no_change' | 'aborted' | 'failed';
 
-  /** `Era.extra.run()` 的结果 */
+  /** `Era.extra.plan()` / `Era.extra.replan()` 的结果 */
   type PlanRunResult = {
     /** `no_entries`: 卡里没有 `[era_plan]` 条目; `no_change`: 规划模型认为这一轮不需要结算 */
     status: 'done' | 'no_change' | 'no_entries' | 'failed' | 'aborted';
@@ -582,13 +583,13 @@ declare const Era: {
   sync: (mode?: 'auto' | 'latest' | 'full') => Promise<boolean>;
   /** 确定性数学函数, 用法同 `Math`, 各浏览器逐位一致 */
   math: Era.DetMath;
-  /** 当前注册的变量结构的文字说明, 没有注册时为空字符串; 宏为 `{{ERA-schema}}` */
   /**
-   * 改写一楼的正文并按新正文重新计算变量, 算完后返回; 自动保留 ERA 写在原正文里的块 (`<era_data>`、`<era_extra>`).
+   * 改写一楼的正文并按新正文重新计算变量, 算完后返回; 自动保留 ERA 写在原正文里的块 (`<era_data>`、`<era_extra>`、玩家消息里的 `<era_plan>`).
    * 用酒馆助手的 `setChatMessages` 改写正文时 ERA 不会自动重算, 用它就不需要自己再请求同步.
    * 只是写变量时不要改正文, 用 `Era.applyText` / `Era.commit`
    */
   setMessageText: (where: Era.FloorRef, text: string) => Promise<Era.WriteResult>;
+  /** 当前注册的变量结构的文字说明, 没有注册时为空字符串; 宏为 `{{ERA-schema}}` */
   describeSchema: () => string;
   /** 额外模型解析 */
   extra: {

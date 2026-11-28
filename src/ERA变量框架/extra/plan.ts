@@ -3,6 +3,7 @@
  * 目的：正文前规划（路线图 1.8-3）
  *       2026-11-27 可选附上角色描述与用户人设（设置“附带角色信息”）
  *       2026-11-28 问题说明改用 describeIssue
+ *       2026-11-28 试算按写入的形式进行；数字的增减要求用增量写法
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -31,7 +32,7 @@ import {
   maskOutputThinking,
   stripCommandBlocks,
 } from '../utils/message';
-import { readPlanSummary, stripPlanBlock, SUMMARY_TAG } from './plan_block';
+import { readPlanSummary, stripPlanBlock, SUMMARY_TAG, wrapPlanCommands } from './plan_block';
 import { ExtraConfig } from './config';
 import { describeActiveSchema } from './describe';
 import { collectExtraEntries, describeCharacterInfo, ExtraEntry } from './prompt';
@@ -75,7 +76,7 @@ const HEADER = `你负责在写剧情之前，按规划规则结算玩家这一�
 - 只依据下面的规划规则判断这一轮要不要结算；不需要时只输出 <VariableThink>无需规划</VariableThink>。
 - 需要时输出：
   1. <${SUMMARY_TAG}>一两句话写清结算结果（成功还是失败、数值是多少），写剧情的模型会按它来写</${SUMMARY_TAG}>
-  2. 对应的 <VariableInsert>、<VariableEdit>、<VariableDelete> 指令块，数值直接写结果。不要使用 $expr，也不要调用工具。
+  2. 对应的 <VariableInsert>、<VariableEdit>、<VariableDelete> 指令块。数字的增减用增量写法（如 "-=2"、"+=5"），不要写成变化后的数值；状态、文字这类直接写新的值。不要使用 $expr，也不要调用工具。
 - 需要随机结果时，按顺序使用“可用的骰子”里的数值，不要自己编。
 - 不要续写或复述剧情。`;
 
@@ -165,7 +166,7 @@ async function checkOutput(
   }
   if (problems.length === 0 && extracted.hasCommands) {
     // 按玩家消息的规则试算：玩家楼不执行钩子
-    const result = await simulateUserText(extracted.text, stat);
+    const result = await simulateUserText(wrapPlanCommands(extracted.text), stat);
     problems.push(...result.problems.map(describeIssue));
   }
   return { summary, blocks: extracted.hasCommands ? extracted.text : '', problems };

@@ -5,6 +5,7 @@
  *       2026-11-26 Era.applyText 经 commit 提交文本中的指令；新聊天设置了指令外层标签时，追加到正文的指令块包在外层标签里
  *       2026-11-27 atomic 预检与实际写入使用相同的压缩参数，含 $expr 的写入预检与落盘的骰点一致；Era.commit 可以写工具调用 { call }；幂等键 key
  *       2026-11-28 写入事件追加指令块时保留正文里的宏；问题说明不重复路径
+ *       2026-11-28 追加到正文不会执行时改为旁路写入
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -41,6 +42,7 @@ import { getEraData, removeMetaFields, settings, updateEraMetaData } from '../..
 import { Logger } from '../../../utils/log';
 import {
   countCommandBlocks,
+  extractExecutedBlocks,
   findLastAiMessage,
   getRawMessageContent,
   isUserMessage,
@@ -177,6 +179,13 @@ async function performApiWrite(job: ApiWriteJob) {
   // 必须取未展开宏的原文：getMessageContent 会把 {{user}}、{{char}} 换成当前的名字，写回去就固定下来了
   const originalContent = getRawMessageContent(lastAiMessage);
   const newContent = originalContent + block;
+
+  // 正文里有没闭合的思考标签（回复被截断）时，追加在末尾的指令块会被一起遮蔽、不执行：改为旁路写入
+  if (extractExecutedBlocks(newContent).length <= extractExecutedBlocks(originalContent).length) {
+    logger.warn('performApiWrite', '追加到正文的指令块不会被执行（正文里可能有没闭合的思考标签），改为旁路写入');
+    await performApiOp(job);
+    return;
+  }
 
   logger.debug('performApiWrite', `实时写入 API 任务 (${job.blockTag}) 到消息 ID ${lastAiMessage.message_id}...`);
 

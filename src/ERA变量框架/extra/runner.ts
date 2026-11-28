@@ -4,6 +4,7 @@
  * 目的：新增额外模型分步更新、等待式提交、试算与变量结构说明；修复第三批改动在审查中发现的问题；请求失败时退避重试，不重试鉴权、参数错误，换用备用接口；按实测的 generateRaw 错误（只有状态文字）识别鉴权和参数错误；先算目标楼状态再选择和渲染条目，新增 warnings
  *       2026-11-27 “已执行的更新”按当前聊天的解析方式取真正会执行的指令块，与 hasOwnCommands 和同步一致；额外模型输出按“思考标签”设置遮蔽
  *       2026-11-28 问题说明改用 describeIssue
+ *       2026-11-28 各组的输出合在一起再试算一次
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -242,6 +243,13 @@ export async function runExtra(
   if (signal.aborted || !findSwipeByMk(mk)) return end('aborted');
 
   const problems = outputs.flatMap(output => output.problems);
+  // 各组是分别试算的；合在一起才会暴露的问题（两组插入同一个路径、两组各扣一次超过了下限）要再查一遍
+  const produced = outputs.filter(output => output.blocks);
+  if (produced.length > 1 && problems.length === 0) {
+    const joint = await check(produced.map(output => output.blocks).join('\n'));
+    if (signal.aborted || !findSwipeByMk(mk)) return end('aborted');
+    problems.push(...joint.map(issue => `分组之间有冲突：${describeIssue(issue)}`));
+  }
   const blocks = outputs
     .filter(output => output.blocks && (config.失败处理 === '保留有效部分' || problems.length === 0))
     .map(output => output.blocks)

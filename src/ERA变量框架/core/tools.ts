@@ -1,6 +1,7 @@
 /*
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。日期：2026-11-27。
  * 目的：执行工具调用 <EraFCall>（路线图 1.8-2）
+ *       2026-11-28 工具返回单个操作对象时报错
  */
 /**
  * @file ERA 变量框架 - 工具调用
@@ -118,6 +119,14 @@ export function runToolCall(
         () => {},
       );
       throw new Error('工具必须是同步函数，不能返回 Promise');
+    }
+    // 直接返回单个操作（如 `return { edit: {…} }`）既不是数组也没有 operations：以前被当成“没有操作”而显示成功
+    if (
+      _.isPlainObject(output) &&
+      !('operations' in output) &&
+      ['insert', 'edit', 'delete', 'patch', 'call'].some(key => key in output)
+    ) {
+      throw new Error('工具返回了单个操作对象，请返回操作数组，或 { operations: [...], result }');
     }
     const operations = Array.isArray(output) ? output : _.castArray(output?.operations ?? []);
     const commands = toCommands(_.compact(operations), seed, source);

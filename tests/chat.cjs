@@ -5,6 +5,7 @@
  *       2026-11-26 从头重放时沿用原聊天的解析版本；legacy 选项模拟 1.6 建立的旧聊天
  *       2026-11-27 tools、expr_fns 选项注册工具与公式函数（重放的宿主同样注册）；假的酒馆文件接口（折叠日志存档）移到这里
  *       2026-11-27 模拟的 getChatMessages 与酒馆助手一致，把越界的楼层号夹到首尾楼
+ *       2026-11-28 getChatMessages / setChatMessages 照酒馆助手的实现重写（范围、选项、不存在的楼层）
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 // 一个只有内存状态的假聊天，用来驱动真实的同步流程。
@@ -25,24 +26,43 @@ function create_chat(options = {}) {
   const host = create_host(
     {
       ...options.globals,
-      getChatMessages: range => {
-        const all = chat.map((m, message_id) => ({
-          message_id,
-          role: m.role,
-          swipes: [...m.swipes],
-          swipe_id: m.swipe_id,
-        }));
-        if (typeof range !== 'number') return all;
-        // 与酒馆助手一致：越界的楼层号被夹到首楼或末楼，而不是返回空
-        if (all.length === 0) return [];
-        const index = range < 0 ? Math.max(0, all.length + range) : Math.min(range, all.length - 1);
-        return [all[index]];
+      // 以下两个接口照酒馆助手 4.12 的 src/function/chat_message.ts 写，行为要保持一致：
+      // 楼层号越界时夹到首尾楼而不是返回空；范围写法 `a-b`；改写不存在的楼层时什么也不做。
+      getChatMessages: (range, { role = 'all', include_swipes = false } = {}) => {
+        const max = chat.length - 1;
+        const clamp = value => _.clamp(value < 0 ? max + value + 1 : value, 0, max);
+        const text = String(range).replace('{{lastMessageId}}', String(max));
+        let start, end;
+        if (/^-?\d+$/.test(text)) {
+          start = end = clamp(Number(text));
+        } else {
+          const match = text.match(/^(-?\d+)-(-?\d+)$/);
+          if (!match) return [];
+          [start, end] = _.sortBy([match[1], match[2]].map(Number).map(clamp));
+        }
+        const result = [];
+        for (let message_id = start; message_id <= end; message_id++) {
+          const m = chat[message_id];
+          if (!m || (role !== 'all' && m.role !== role)) continue;
+          const swipes = [...m.swipes];
+          const base = { message_id, role: m.role, is_hidden: !!m.is_hidden, swipe_id: m.swipe_id, swipes };
+          result.push(include_swipes ? base : { ...base, message: swipes[m.swipe_id] ?? '' });
+        }
+        return result;
       },
       setChatMessages: async updates => {
         for (const update of updates) {
-          const target = chat[update.message_id];
-          if (update.swipes) target.swipes = [...update.swipes];
-          else if (update.message !== undefined) target.swipes[target.swipe_id] = update.message;
+          const id = update.message_id < 0 ? chat.length + update.message_id : update.message_id;
+          const target = chat[id];
+          if (!target) continue;
+          if (update.is_hidden !== undefined) target.is_hidden = update.is_hidden;
+          if (update.message !== undefined) {
+            target.swipes[target.swipe_id] = update.message;
+          } else if (update.swipes !== undefined || update.swipe_id !== undefined) {
+            const swipes = [...(update.swipes ?? target.swipes)];
+            target.swipes = swipes;
+            target.swipe_id = _.clamp(update.swipe_id ?? target.swipe_id ?? 0, 0, swipes.length - 1);
+          }
         }
       },
       getVariables: option => plain(option?.type && option.type !== 'chat' ? (others[option.type] ??= {}) : variables),

@@ -1,6 +1,7 @@
 /*
  * 修改声明（AFPL 第 2(c)(i) 条）：本文件由 Bailuci 新增。日期：2026-11-27。
  * 目的：正文前规划的 <era_plan> 块：读取、去掉与拼接（路线图 1.8-3）
+ *       2026-11-28 新增 wrapPlanCommands（试算与写入同形）
  */
 'use strict';
 
@@ -30,14 +31,22 @@ export function stripPlanBlock(text: string): string {
 }
 
 /**
+ * 规划的指令块实际写进玩家消息时的样子：新聊天设置了指令外层标签时包在外层标签里。
+ * 试算也必须用这个形式，否则标签外的指令会被当成“不执行”，什么问题都查不出来。
+ */
+export function wrapPlanCommands(blocks: string): string {
+  const outerTag = getCurrentParseOptions()?.outerTag;
+  return blocks && outerTag ? `<${outerTag}>\n${blocks}\n</${outerTag}>` : blocks;
+}
+
+/**
  * 把规划结果拼到玩家消息末尾，原有的规划块先去掉。新聊天设置了指令外层标签时，指令块包在外层标签里，
  * 否则不会执行（与写入事件追加到正文的指令块相同）。
  */
 export function appendPlanBlock(text: string, summary: string, blocks: string): string {
   const base = stripPlanBlock(text).trimEnd();
   if (!summary && !blocks) return base;
-  const outerTag = getCurrentParseOptions()?.outerTag;
-  const commands = blocks && outerTag ? `<${outerTag}>\n${blocks}\n</${outerTag}>` : blocks;
+  const commands = wrapPlanCommands(blocks);
   const parts = [summary ? `<${SUMMARY_TAG}>${summary}</${SUMMARY_TAG}>` : '', commands].filter(Boolean);
   return `${base}\n<${PLAN_TAG}>\n${parts.join('\n')}\n</${PLAN_TAG}>`;
 }

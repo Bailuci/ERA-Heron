@@ -10,6 +10,7 @@
  *       2026-11-27 setMessageText / keepMessageKey 的楼层号越界时报错（酒馆助手会把越界的楼层号夹到首尾楼）
  *       2026-11-28 新增 Era.sync、Era.extra.autoRun / settings / planInjection
  *       2026-11-28 注册工具、公式函数后请求重算出错时仍返回注销函数
+ *       2026-11-28 registerSchema 无效时返回空的注销函数；Era.extra.plan 先等分步更新；整理注释
  * 原项目：RockingSisyphus/ERA-EfficientRollbackArchitecture，修改记录见仓库根目录的 更新日志.md
  */
 /**
@@ -244,6 +245,8 @@ export const Era = {
     const registered = setActiveSchema(schema, options);
     if (!registered) {
       reportRegisterError('变量结构注册失败', 'schema 必须是带有 safeParse 方法的对象（例如 zod schema）。');
+      // 没有注册成功就不能返回会注销的函数：schema 是 undefined 时它会把别人已经注册的结构清掉
+      return () => {};
     } else if (options?.resync !== false) {
       requestLatestResync();
     }
@@ -433,18 +436,6 @@ export const Era = {
   },
 
   /**
-   * 前端改写楼层正文时保留 ERA 写在正文里的块：
-   * - 该楼的 MK（`<era_data>` 块）。MK 丢失后，该楼的旁路写入会在下次完全同步时被当作孤儿清除；
-   * - 分步更新写入的 `<era_extra>` 块（额外模型的输出）。丢失后，额外模型写入的变量会随之回滚。
-   * 新的正文已经含有某种块时，这种块不再补（不会重复）。
-   * @param text 新的正文。
-   * @param from 原来的正文，或楼层的消息 ID（可以用负数从末尾倒数）。
-   * @returns 末尾补上原来的 `<era_data>`、`<era_extra>` 块的正文；原来也没有时原样返回。
-   * @throws `from` 是楼层号而这一楼不存在时抛出错误。
-   * @example
-   * await setChatMessages([{ message_id: 0, message: Era.keepMessageKey(newText, 0) }]);
-   */
-  /**
    * 请求一次同步并等它完成，相当于可以等待的 `era:forceSync`。
    * 脚本删楼、切换 swipe（酒馆助手的 `deleteChatMessages`、`setChatMessages` 默认不通知 ERA）之后调用，再读变量或建下一楼。
    * @param mode `'auto'`（默认，按聊天记录的变化决定重算范围）、`'latest'`（只重算最新一楼）或 `'full'`（从第一楼完全重算）。
@@ -454,6 +445,19 @@ export const Era = {
     return rejectIfGuarded('Era.sync') ?? syncNow(mode);
   },
 
+  /**
+   * 前端改写楼层正文时保留 ERA 写在正文里的块：
+   * - 该楼的 MK（`<era_data>` 块）。MK 丢失后，该楼的旁路写入会在下次完全同步时被当作孤儿清除；
+   * - 分步更新写入的 `<era_extra>` 块（额外模型的输出）。丢失后，额外模型写入的变量会随之回滚；
+   * - 正文前规划写在玩家消息里的 `<era_plan>` 块。丢失后，规划写入的变量会随之回滚。
+   * 新的正文已经含有某种块时，这种块不再补（不会重复）。
+   * @param text 新的正文。
+   * @param from 原来的正文，或楼层的消息 ID（可以用负数从末尾倒数）。
+   * @returns 补上原来的 `<era_data>`、`<era_extra>`、`<era_plan>` 块的正文；原来也没有时原样返回。
+   * @throws `from` 是楼层号而这一楼不存在时抛出错误。
+   * @example
+   * await setChatMessages([{ message_id: 0, message: Era.keepMessageKey(newText, 0) }]);
+   */
   keepMessageKey(text: string, from: string | number): string {
     if (typeof from !== 'number') return keepEraBlocks(text, String(from ?? ''));
     const msg = getMessageAt(from);
@@ -462,7 +466,7 @@ export const Era = {
   },
 
   /**
-   * 改写一楼的正文，保留 ERA 写在原正文里的块（`<era_data>`、`<era_extra>`），并按新正文重新计算变量，算完后返回。
+   * 改写一楼的正文，保留 ERA 写在原正文里的块（`<era_data>`、`<era_extra>`、玩家消息里的 `<era_plan>`），并按新正文重新计算变量，算完后返回。
    * 酒馆助手的 `setChatMessages` 改写正文后酒馆不发出消息修改事件，ERA 不会自动重算；用这个接口不需要自己再请求同步。
    * 只是往某一楼写变量时不要改正文，用 `Era.applyText` / `Era.commit`。
    * @param where 楼层的消息 ID（可以用负数从末尾倒数）、MK，或 `{ mk, message_id }`。
@@ -498,7 +502,13 @@ export const Era = {
      * 正文前规划（1.8 起）：按 `[era_plan]` 条目为一段玩家文字做规划，返回追加了 `<era_plan>` 的文本，不写入任何内容。
      * 脚本、快速回复自己发送消息时用它；玩家点击发送时由“正文前规划”设置自动进行。
      */
-    plan: (text: string): Promise<PlanRunResult> => rejectIfGuarded('Era.extra.plan') ?? planText(text),
+    plan: (text: string): Promise<PlanRunResult> =>
+      rejectIfGuarded('Era.extra.plan') ??
+      (async () => {
+        // 上一楼的分步更新还没写回时，规划会按旧的变量结算；与玩家点击发送时一样先等它完成
+        await waitForJobs();
+        return planText(text);
+      })(),
     /**
      * 按自动触发的同样条件解析一楼：没有开启分步更新、是玩家消息、正文自己带有指令时不请求，返回 `null`。
      * 自己建楼的前端在建好 AI 楼之后调用（脚本建的楼不会触发自动解析）；成功和无变化时不弹提示。
